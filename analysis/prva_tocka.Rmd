@@ -1,0 +1,103 @@
+---
+title: "SAP projekt Porez123 - prva točka"
+subtitle: ""
+author: "Matija Kukić"
+date: "11.12.2024"
+output: pdf_document
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Provjera povezanosti zanimanja i bračnog statusa
+
+U ovoj bilježnici ćemo pokušati jednostavnom analizom vidjeti jesu li povezani zanimanje klijenta i njihovog bračnog statusa.
+
+```{r echo=T, error=FALSE, warning=FALSE, message=FALSE}
+library('dplyr')
+```
+
+Prvo učitavamo podatke.
+
+```{r}
+marketing = read.csv("../data/data.csv")
+head(marketing)
+dim(marketing)
+```
+
+Pregled jednostavnih statistika.
+
+```{r}
+summary(marketing)
+```
+
+Pregledavamo kakve vrijednosti imamo u datasetu, nakon toga još gledamo imamo li neke nepoznate podatke.
+
+```{r}
+levels(factor(marketing$job))
+levels(factor(marketing$marital_status))
+```
+
+```{r}
+s <- c('job', 'marital_status')
+for (col_name in s){
+  if (sum(is.na(marketing[,col_name])) > 0){
+    cat('Ukupno nedostajućih vrijednosti za varijablu ',col_name, ': ', sum(is.na(marketing[,col_name])),'\n')
+  }
+  else {
+    cat('Nema nedostajućih vrijednosti.\n')
+  }
+}
+```
+
+Nemamo nedostajućih vrijednosti.
+Logično možemo u iz podataka uzeti samo stupce koji nam trebaju odnosno posao i bračni status.
+
+```{r}
+rel = marketing[names(marketing) %in% c('job','marital_status')]
+head(rel)
+dim(rel)
+tracemem(rel)==tracemem(marketing)
+```
+
+Možemo i maknuti nepoznati posao.
+
+```{r}
+rel = rel[rel$job != 'unknown', ]
+dim(rel)
+```
+
+Primjećujemo da nismo izgubili mnogo podataka.
+
+Budući da imamo kategorijske podatke, radimo kontigencijsku tablicu i provodimo $\chi^2$ test za
+
+```{r}
+tab = table(rel$job,rel$marital_status)
+tab
+kontab = addmargins(tab)
+kontab
+```
+
+Sada moramo pogledati očekivane vrijednosti svakog stupca i retka.
+
+```{r}
+for (col_names in colnames(kontab)){
+  for (row_names in rownames(kontab)){
+    if (!(row_names == 'Sum' | col_names == 'Sum') ){
+      cat('Očekivane frekvencije za razred ',col_names,'-',row_names,': ',(kontab[row_names,'Sum'] * kontab['Sum',col_names]) / kontab['Sum','Sum'],'\n')
+    }
+  }
+}
+```
+
+Sve su veće od 5 pa možemo provesti test.
+
+```{r}
+chisq.test(kontab,correct=F)
+```
+
+Možemo odbaciti hipotezu H0 koja je da su tablični podatci nezavisnu u korist hipoteze H1 koja je da postoji zavisnost među kategorijama.
