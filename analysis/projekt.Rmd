@@ -1,0 +1,181 @@
+---
+title: "Projekt"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Podatci o korisnicima
+
+```{r podatci}
+# Ucitavanje podataka
+data = read.csv('../data/data.csv')
+summary(data)
+```
+
+Možemo pogledati ovisnost godišta, posla, bračnog statusa, edukacije te kredita na uspješnost kampanje.
+
+```{r test ovisnosti uspijeha}
+
+data$job <- as.factor(data$job)
+data$marital_status <- as.factor(data$marital_status)
+data$education <- as.factor(data$education)
+data$housing_loan <- as.factor(data$housing_loan)
+data$personal_loan <- as.factor(data$personal_loan)
+
+data$term_deposit_accepted <- ifelse(data$term_deposit_accepted == "yes", 1, 0)
+
+require(dplyr)
+
+data %>%
+  count(term_deposit_accepted)
+
+weights <- ifelse(data$term_deposit_accepted == 1, 9, 1)
+
+
+model <- glm(term_deposit_accepted ~ age + job + marital_status + education + balance + default + contact + housing_loan + personal_loan + last_contact_duration + previous_contacts_count, 
+            data = data, family = binomial, weights = weights)
+
+summary(model)
+
+help("glm")
+Rsq = 1 - model$deviance/model$null.deviance
+Rsq
+```
+
+Vidimo da je, ako je osoba umirovljenik ili student, veća šansa da kampanja bude uspješna, dok broj godina i činjenica da je klijent u braku ne povećavaju ni smanjuju puno šanse. Također je vidljivo da model jako slabo opisuje rezultat. Možemo pokušati reducirati model te testirati poboljšava li to $R^2$
+
+```{r LM za reducirani model}
+
+reduced_model <- glm(term_deposit_accepted ~ job + education + marital_status, 
+            data = data, family = binomial)
+
+summary(reduced_model)
+
+```
+
+Vidimo da model, iako smo isključili jednu naizgled nebitnu varijablu, lošije opisuje rezultat.
+
+```{r LM ovisnosti last_contact_duration}
+
+contact_duration_model <- glm(term_deposit_accepted ~ last_contact_duration, 
+                              data = data, family = binomial)
+summary(contact_duration_model)
+
+f = function(x, coeffs)
+  return(coeffs[[1]] + coeffs[[2]] * x)
+
+plot(data$last_contact_duration, data$term_deposit_accepted) 
+curve(f(x, contact_duration_model$coefficients), add = TRUE, col = "red")
+
+```
+
+Pogledom na graf vidimo da nema nekakve korelacije između trajanja kontakta u uspjeha kampanje.
+
+```{r ovisnosti o trajanju kontakta}
+
+contact_duration_LM_model <- lm(last_contact_duration ~ contact + job + age + education + marital_status + balance + default, 
+                              data = data)
+summary(contact_duration_LM_model)
+
+
+```
+
+Također vidimo da je trajanje kontakra također nepredvidivo, bez obzira na uređaj koji klijenti koriste, na godine, posao, edukaciju, bračni status, prosječni saldo ili kredit.
+
+```{r ovisnosti salda o poslu}
+
+balance_job_model <- lm(balance ~ job, 
+                              data = data)
+summary(balance_job_model)
+
+boxplot(ifelse(data$balance <= 0, NA, log(data$balance)) ~ data$job)
+
+
+```
+
+Iako je model jako neprecizan pri definiranju poveznice između salda i posla, vidimo da neki poslovi uvelike povečavaju očekivani saldo, kao što su menagment, dok neki drugi smanjuju, kao što su fizički poslovi i poslužni poslovi. Ali, kao što vidimo, ne postoji neka definicija za saldo.
+
+Možemo testirati postoji li značajna razlika među prosjecima salda u ovisnosti o poslu
+
+```{r test normalnosti ovisnosti salda o poslu}
+require(nortest)
+
+for (job in unique(data$job)) {
+  balance_data <- data$balance[data$job == job]
+  
+  test_result <- lillie.test(balance_data)
+  
+      hist(log(balance_data), 
+       main = paste("Balance for job:", job), 
+       xlab = "C. Duration", 
+       col = "skyblue", 
+       border = "white")
+    
+qqnorm(balance_data)
+qqline(balance_data)
+      
+      
+  
+  cat("Job:", job, "\n")
+  print(test_result)
+  cat("\n--------------------\n")
+}
+
+
+```
+Ne možemo prihvatiti nijednu razdiobu poslova i salda kao normalnu.
+
+----------------------------------------------------------------------------------------------
+
+```{r ovisnosti salda o poslu}
+require(nortest)
+
+for (job in unique(data$job)) {
+  contact_data <- scale(log(data$last_contact_duration[data$job == job] + 1))
+  
+  contact_test_result <- lillie.test(contact_data)
+  
+    hist(contact_data, 
+       main = paste("Contact Duration for Job:", job), 
+       xlab = "C. Duration", 
+       col = "skyblue", 
+       border = "white")
+qqnorm(contact_data)
+qqline(contact_data)
+    
+  cat("Job:", job, "\n")
+  print(contact_test_result)
+  cat("\n--------------------\n")
+}
+
+
+```
+
+S obzirom da bez obzira na vrstu transformacije, nikako ne možemo transformirati term_deposit_accepted - education relaciju u normalnu distribuciju, koristit ćemo Kruskal-Wallisov test za provjeriti
+
+```{r Kruskal-Wallisov test accepted-education}
+
+
+kruskal.test(term_deposit_accepted ~ education, data = data)
+
+pairwise.wilcox.test(data$term_deposit_accepted, data$education, p.adjust.method = "bonferroni")
+
+```
+
+Rezultati nam pokazuju da postoji razlika između razine edukacije i uspjeha kampanje kroz sve razine edukacije. Jedina ne značajna razlika je između tertiary i unknow rezine edukacije.
+
+```{r Kruskal-Wallisov test balance-marital_status}
+
+
+kruskal.test(balance ~ marital_status, data = data)
+
+pairwise.wilcox.test(data$balance, data$marital_status, p.adjust.method = "bonferroni")
+
+
+```
+
+Ponovno, zbog ne normalnosti podataka, koristimo Kruskal-Wallis test te odbacujemo ideju da ne postoji razlika između bračnog statusa i godišnjeg salda.
+
