@@ -1,0 +1,41 @@
+---
+title: "Final"
+author: "Andrija Petrusić, Matija Luka Kukić, Dominik Gračner, Ivan Džanija"
+date: "2025-01-15"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Analiza uspješnosti marketinške kampanje
+
+```{r Data previewm echo = FALSE}
+marketingData <- read.csv("data/data.csv")
+head(marketingData)
+```
+
+## Deskriptivna statistika
+
+```{r Descriptive statistics, echo=FALSE}
+# Generalni pregled
+summary(marketingData)
+```
+```{r, echo=FALSE}
+deposit_count <- table(marketingData$term_deposit_accepted)
+print("Binarna varijabla - uplaćen depozit(uspješna kampanja)")
+print(deposit_count)
+
+previous_deposit_count <- table(marketingData$previous_campaign_outcome)
+print("Binarna varijabla - uplaćen depozit(uspješna kampanja)")
+print(deposit_count)
+```
+
+```{r Graphing}
+barplot(table(data$job), main = "Posao",
+        col = "lightblue",
+        ylab = "Frekvencija",
+        las = 2,
+        cex.names = 0.7)
+```
