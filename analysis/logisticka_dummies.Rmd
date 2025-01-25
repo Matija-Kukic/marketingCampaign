@@ -1,0 +1,102 @@
+---
+title: "Projekt"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Podatci o korisnicima
+
+```{r podatci}
+# Ucitavanje podataka
+data = read.csv('../data/data.csv')
+summary(data)
+```
+
+Možemo pogledati ovisnost godišta, posla, bračnog statusa, edukacije te kredita na uspješnost kampanje.
+
+```{r educaion}
+tab <- table(data$term_deposit_accepted, data$education)
+tab
+
+```
+
+```{r logisticka regresija}
+
+data$job <- as.factor(data$job)
+data$marital_status <- as.factor(data$marital_status)
+data$education <- as.factor(data$education)
+data$education <- relevel(data$education, ref = "unknown")
+data$previous_campaign_outcome <- as.factor(data$previous_campaign_outcome)
+data$previous_campaign_outcome <- relevel(data$previous_campaign_outcome, ref = "unknown")
+data$housing_loan <- as.factor(data$housing_loan)
+data$personal_loan <- as.factor(data$personal_loan)
+
+data$term_deposit_accepted <- ifelse(data$term_deposit_accepted == "yes", 1, 0)
+data$housing_loan <- ifelse(data$housing_loan == "yes", 1, 0)
+data$personal_loan <- ifelse(data$personal_loan == "yes", 1, 0)
+
+require(dplyr)
+
+data %>%
+  count(term_deposit_accepted)
+
+weights <- ifelse(data$term_deposit_accepted == 1, 9, 1)
+
+
+model <- glm(term_deposit_accepted ~ age + job + marital_status + education + balance + default + housing_loan + personal_loan + last_contact_duration + previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial,weights=weights)
+
+summary(model)
+```
+
+```{r analiza}
+#help("glm")
+Rsq = 1 - model$deviance/model$null.deviance
+Rsq
+
+yHat <- model$fitted.values > 0.5
+tab <- table(data$term_deposit_accepted, yHat)
+
+tab
+
+
+accuracy = sum(diag(tab)) / sum(tab)
+precision = tab[2,2] / sum(tab[,2])
+recall = tab[2,2] / sum(tab[2,])
+specificity = tab[1,1] / sum(tab[,1])
+
+cat("\naccuracy:")
+accuracy
+cat("\nprecision:")
+precision
+cat("\nrecall:")
+recall
+cat("\nspecificity:")
+specificity
+
+F1 = 2 * ((precision*recall)/(precision+recall))
+cat("\nF1:")
+F1
+
+```
+
+Vidimo da je, ako je osoba umirovljenik ili student, veća šansa da kampanja bude uspješna, dok broj godina i činjenica da je klijent u braku ne povećavaju ni smanjuju puno šanse. Također je vidljivo da model jako slabo opisuje rezultat. Možemo pokušati reducirati model te testirati poboljšava li to $R^2$
+
+```{r LM za reducirani model}
+
+reduced_model <- glm(term_deposit_accepted ~ age + job  + education + balance + default + housing_loan + personal_loan + last_contact_duration + previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial,weights=weights)
+
+summary(reduced_model)
+
+Rsq = 1 - reduced_model$deviance/model$null.deviance
+Rsq
+
+```
+
+```{r dummy variables}
+require(fastDummies)
+dummies = dummy_cols(data,select_columns='job')
+dummies
+```
