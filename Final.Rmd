@@ -11,20 +11,20 @@ knitr::opts_chunk$set(echo = TRUE)
 library('dplyr')
 ```
 
-```{r, echo = FALSE, warning=FALSE}
+```{r, warning= FALSE, fig.show='hold'}
 marketingData <- read.csv("data/data.csv")
 # head(marketingData)
 ```
 
-## Deskriptivna statistika
+# Deskriptivna statistika
 
 Generalni pregled podataka i vizualizacija.
 
-```{r, echo=FALSE, warning=FALSE}
+```{r, warning= FALSE , fig.show='hold'}
 # summary(marketingData)
 ```
 
-```{r, echo = FALSE, warning=FALSE}
+```{r, warning= FALSE , fig.show='hold'}
 deposit_count <- table(marketingData$term_deposit_accepted)
 cat("Uplaćen depozit(uspješna kampanja) - Binarna varijabla\n")
 cat(deposit_count)
@@ -50,7 +50,7 @@ cat("\nIma li osobni zajam?\n")
 cat(personal_loan_count)
 ```
 
-```{r, echo = FALSE, warning=FALSE}
+```{r, warning=FALSE, fig.show='hold'}
 barplot(table(marketingData$job), main = "Posao",
         col = "lightblue",
         ylab = "Frekvencija",
@@ -58,11 +58,11 @@ barplot(table(marketingData$job), main = "Posao",
         cex.names = 0.7)
 ```
 
-## *Postoji li zavisnost između zanimanja i bračnog statusa klijenta?*
+# *Postoji li zavisnost između zanimanja i bračnog statusa klijenta?*
 
 Prvo ćemo provjeriti imamo li nedostajućih vrijednosti i uzeti samo stupce koji su nam bitni za ovo testiranje. Također iz stupca "job" ćemo makuti vrijednosti "unknown" jer ne nose nikakvu informaciju za ovo testiranje.
 
-```{r, echo = FALSE, warning=FALSE}
+```{r, warning= FALSE , fig.show='hold'}
 rel = marketingData[names(marketingData) %in% c('job','marital_status')]
 rel = rel[rel$job != 'unknown', ]
 status <- c('job', 'marital_status')
@@ -89,13 +89,13 @@ Pretpostavke:
 
 Izrađujemo kontigencijsku tablicu i provjeravamo kolika je očekivana vrijednost za svaku ćeliju.
 
-```{r, echo = FALSE, warning=FALSE}
+```{r, warning= FALSE , fig.show='hold'}
 tab = addmargins(table(rel$job,rel$marital_status))
 cat("\t\tKontigencijska tablica\n")
 print(tab)
 ```
 
-```{r, echo = FALSE, warning=FALSE}
+```{r, warning= FALSE , fig.show='hold'}
 cat("H0: Kategorijski podatci su nezavisni\n")
 cat("H1: Kategorijski podatci nisu nezavisni\n")
 cat("Alpha value = 0.05\n")
@@ -114,7 +114,7 @@ Prvo vidimo kako niti jedna očekivana vrijednost nije manja od 5 te zaključuje
 
 Na temelju testa odbacujemo H0(Kategorijski podatci su nezavisni) u korist H1(Kategorijski podatci nisu nezavisni) te zaključemo da postoji statistički značajna zavisnost između zanimanja i bračnost statusa klijenta na razini značajnosti $\alpha$ = 5%.
 
-## ***Imaju li klijenti s otvorenim kreditom više novca na računu od ostalih klijenata?***
+# ***Imaju li klijenti s otvorenim kreditom više novca na računu od ostalih klijenata?***
 
 Za provjeru zavisnosti financijskog stanja klijenta i trenutno otvorenog kredita razmatramo T-test za dva uzorka.
 
@@ -128,7 +128,7 @@ Pretpostavke:
 
 Uzimamo stupce koji su nam bitni - kredit i stanje računa te dodajmo stupac koji sadrži "yes" ako klijent ima neki od dva kredita, a inače "no".
 
-```{r, echo = FALSE, warning=FALSE}
+```{r, warning= FALSE , fig.show='hold'}
 stripped = select(marketingData, c("balance", "housing_loan", "personal_loan"))
 stripped$open_any_loan <- ifelse(stripped$housing_loan == "yes" | stripped$personal_loan == "yes", "yes", "no")
 summary(stripped)
@@ -136,7 +136,7 @@ summary(stripped)
 
 Provjerimo vrijednosti kategoričkih podataka i nalazimo li na nedostajuće vrijednosti.
 
-```{r, echo = FALSE, warning=FALSE}
+```{r, warning= FALSE , fig.show='hold'}
 'Moguće vrijednosti za stambeni kredit: '
 unique(stripped$housing_loan)
 'Moguće vrijednosti za osobni zajam: '
@@ -144,7 +144,8 @@ unique(stripped$personal_loan)
 
 for (col_name in names(stripped)){
   if (sum(is.na(stripped[,col_name])) > 0){
-    cat('Ukupno nedostajućih vrijednosti za varijablu ',col_name, ': ', sum(is.na(fifa19[,col_name])),'\n')
+    cat('Ukupno nedostajućih vrijednosti za varijablu ',col_name, ': ', 
+        sum(is.na(stripped[,col_name])),'\n')
   }
 }
 count = 0
@@ -161,7 +162,7 @@ Vidimo kako nema nedostajućih vrijednosti.
 
 Vizualiziramo podatke i provodimo moguće testove na normalnost podataka.
 
-```{r, echo = FALSE, warning=FALSE}
+```{r, warning= FALSE , fig.show='hold'}
 hloan <- table(stripped$housing_loan)
 cat("\nIma li stambeni kredit?")
 print(hloan)
@@ -173,9 +174,15 @@ print(ploan)
 aloan <- table(stripped$open_any_loan)
 cat("\nIma li osobni zajam?")
 print(aloan)
+```
+
+```{r, warning= FALSE, fig.show='hold'}
 hist(stripped$balance - min(stripped$balance)+1,main='Financijsko stanje', xlab='eur', ylab='Frequency')
 balance_mean <- mean(stripped$balance)
 balance_sd <- sd(stripped$balance)
+```
+
+```{r, warning= FALSE, fig.show='hold'}
 h = hist(stripped$balance,
   main="Financijsko stanje - 3sigma pregled", 
   xlab="Balans",
@@ -183,12 +190,15 @@ h = hist(stripped$balance,
   xlim = c(balance_mean - 3 * balance_sd, balance_mean + 3 * balance_sd),
   col="red"
 )
+```
+
+```{r, warning= FALSE, fig.show='hold'}
 hist(log(stripped$balance),main='Financijsko stanje bez negativnih vrijednosti - log(val)', xlab='eur', ylab='Frequency')
 ```
 
 Primjećujemo postojanje velikih outliera, analiziramo njihovu frekvenciju te ih uklanjamo ukoliko nije značajna.
 
-```{r, echo = FALSE, warning=FALSE}
+```{r, warning= FALSE , fig.show='hold'}
 stripped$z <- scale(stripped$balance)
 summary(stripped$z)
 cat('\nbroj vrijednosti sa z-vrijednošću većom od 3.29: ',sum(stripped$z > 3))
@@ -201,36 +211,45 @@ final <- subset(final, balance >= quantile(balance, 0.01) & balance <= quantile(
 
 Vidimo kako su stršeće vrijednosti stvarno samo manjina podataka te ćemo i maknuti kako bi mogli lakše dalje vizualizirati i provoditi testove bez da pretjerano utječju stršeće vrijednosti. Izbacujemo samo 2% podataka.
 
-```{r, echo = FALSE, warning=FALSE}
+```{r, warning= FALSE , fig.show='hold'}
 otvoren = final[final$open_any_loan == 'yes',]
 neotvoren = final[final$open_any_loan == 'no',]
-
 cat('Prosječno stanje računa klijenata s otvorenim kreditom: ', mean(otvoren$balance))
 cat('\nProsječno stanje računa klijenata bez otvorenog kredita: ', mean(neotvoren$balance))
+```
 
+```{r, warning= FALSE, fig.show='hold'}
 boxplot(otvoren$balance, neotvoren$balance, 
         names = c("Financijsko stanje klijenata\ns otvorenim kreditom", 
                   "Financijsko stanje klijenata\nbez otvorenog kredita"),
         main='Usporedba stanja računa')
- 
 ```
 
 Sada ćemo vizualizirati histogramom i qq-plotom izgled distribucija te ćemo također provesti Kolmogorov-Smirnov test. Za Kolmogorov-Smirnov moramo testirati specifičnu distribuciju što znači da moramo prosljediti i parametre distribucije prema kojoj hoćemo testirati.
 
-```{r, echo = FALSE, warning=FALSE}
+```{r, warning= FALSE , fig.show='hold'}
 hist(otvoren$balance, 
      main='Histogram stanja računa klijenata s otvorenim kreditom',
      xlab='Stanje računa u eurima')
+```
+
+```{r, warning= FALSE, fig.show='hold'}
 hist(neotvoren$balance, 
      main='Histogram stanja računa klijenata bez otvorenog kredita',
      xlab='Stanje računa u eurima')
+```
 
+```{r, warning= FALSE, fig.show='hold'}
 qqnorm(otvoren$balance, pch = 1, frame = FALSE,main='Financijsko stanje klijenata s otvorenim kreditom')
 qqline(otvoren$balance, col = "steelblue", lwd = 2)
+```
 
+```{r, warning= FALSE, fig.show='hold'}
 qqnorm(neotvoren$balance, pch = 1, frame = FALSE,main='Financijsko stanje klijenata bez otvorenog kreditom')
 qqline(neotvoren$balance, col = "steelblue", lwd = 2)
+```
 
+```{r, warning= FALSE, fig.show='hold'}
 cat("Alpha value = 0.05\n")
 ks.test(otvoren$balance, "pnorm", mean = mean(otvoren$balance), sd = sd(otvoren$balance))
 ks.test(neotvoren$balance, "pnorm", mean = mean(neotvoren$balance), sd = sd(neotvoren$balance))
@@ -242,7 +261,7 @@ Zaključak: Odbacujemo H0(normalnost distribucije) u koristi H1(nemamo normalnos
 
 Pošto nemamo pretpostavku normalnosti ne možemo koristiti T-test te provodimo neparametarski test. Test koji provodimo je Mann-Whitney-Wilcoxonov test/Mann–Whitney U test/Wilcoxon rank-sum test
 
-```{r, echo = FALSE, warning=FALSE}
+```{r, warning= FALSE , fig.show='hold'}
 cat("H0: Medijani su jednaki\n")
 cat("H1: Medijani su različiti\n")
 cat("Alpha value = 0.05\n")
@@ -253,11 +272,11 @@ wilcox.test(otvoren$balance, neotvoren$balance, paired = FALSE)
 
 Nismo mogli provesti T-test jer nismo imali zadovoljenu pretpostavku normalnosti te smo odlučili provesti neparametarski MWW/MWU test za 2 nezavisna uzorka. Na temelju testa odbacujemo H0(medijani su jednaki) u koristi H1(medijani su različiti) na razini značajnosti $\alpha$ = 5%.
 
-## *Postoji li razlika trajanja poziva marketinške kampanje među klijentima različitog stupnja obrazovanja?*
+# *Postoji li razlika trajanja poziva marketinške kampanje među klijentima različitog stupnja obrazovanja?*
 
 Prvo uzimamo samo podatke koji su nam potrebni za provedbu ovog testa te provjeravamo postoje li nedostajuće vrijednosti. Također ćemo maknuti podatke za "education" s vrijednosti "unknown" jer nam ne nose informaciju u ovom testiranju.
 
-```{r}
+```{r, warning= FALSE, fig.show='hold'}
 stripped = select(marketingData, c("last_contact_duration", "education"))
 
 for (col_name in names(stripped)){
@@ -270,7 +289,7 @@ final <- subset(stripped, education != "unknown")
 
 Razdvajamo podatke na 3 različite skupine: Primary, Secondary i Tertiary koje predstavljuju stupnjeve obrazovanja klijenata
 
-```{r}
+```{r, warning= FALSE, fig.show='hold'}
 primary = final[final$education == 'primary',]
 secondary = final[final$education == 'secondary',]
 tertiary = final[final$education == 'tertiary',]
@@ -295,28 +314,41 @@ Pretpostavke:
 
 Distribuciju podataka unutar svake skupine prikazati ćemo histogramom i qq-plotom. Također testiramo normalnost Lilliforsovom inačicom Kolmogorov-Smirnovljeva testa.
 
-```{r}
+```{r, warning= FALSE, fig.show='hold'}
 library(nortest)
 hist(primary$last_contact_duration, 
      main='Histogram primary',
      xlab='Duljina poziva')
+```
+
+```{r, warning= FALSE, fig.show='hold'}
 hist(secondary$last_contact_duration, 
      main='Histogram secondary',
      xlab='Duljina poziva')
+```
+
+```{r, warning= FALSE, fig.show='hold'}
 hist(tertiary$last_contact_duration, 
      main='Histogram tertiary',
      xlab='Duljina poziva')
+```
 
-
+```{r, warning= FALSE, fig.show='hold'}
 qqnorm(primary$last_contact_duration, pch = 1, frame = FALSE,main='primary')
 qqline(primary$last_contact_duration, col = "steelblue", lwd = 2)
+```
 
+```{r, warning= FALSE, fig.show='hold'}
 qqnorm(secondary$last_contact_duration, pch = 1, frame = FALSE,main='secondary')
 qqline(secondary$last_contact_duration, col = "steelblue", lwd = 2)
+```
 
+```{r, warning= FALSE, fig.show='hold'}
 qqnorm(tertiary$last_contact_duration, pch = 1, frame = FALSE,main='tertiary')
 qqline(tertiary$last_contact_duration, col = "steelblue", lwd = 2)
+```
 
+```{r, warning= FALSE, fig.show='hold'}
 cat("Alpha value = 0.05\n")
 lillie.test(primary$last_contact_duration)
 lillie.test(secondary$last_contact_duration)
@@ -327,10 +359,9 @@ Zaključak: Odbacujemo H0(normalnost distribucije) u koristi H1(nemamo normalnos
 
 ### Neparametski test
 
-Pošto nemamo pretpostavku normalnosti ne možemo koristiti ANOVA test te provodimo neparametarski test. Test koji provodimo je Kruskal–Wallis test.
-Jedini uvjet za primjenjivos Kruskal-Wallis testa je: veličina svakog uzorka barem 5 što je zadovoljeno.
+Pošto nemamo pretpostavku normalnosti ne možemo koristiti ANOVA test te provodimo neparametarski test. Test koji provodimo je Kruskal–Wallis test. Jedini uvjet za primjenjivos Kruskal-Wallis testa je: veličina svakog uzorka barem 5 što je zadovoljeno.
 
-```{r}
+```{r, warning= FALSE, fig.show='hold'}
 data <- marketingData
 data <- data.frame(
   value = c(primary$last_contact_duration, secondary$last_contact_duration, tertiary$last_contact_duration),  
@@ -342,6 +373,135 @@ cat("Alpha value = 0.05\n")
 kruskal_result <- kruskal.test(value ~ group, data = data)
 print(kruskal_result)
 ```
-### Zaključak 
+
+### Zaključak
 
 Nismo mogli provesti ANOVA test jer nismo imali zadovoljenu pretpostavku normalnosti te smo odlučili provesti neparametarski Kruskal-Wallis test. Na temelju testa odbacujemo H0(medijani su jednaki) u koristi H1(medijani su različiti) na razini značajnosti $\alpha$ = 5%.
+
+# *Mogu li dostupne varijable predvidjeti uspješnost marketinške kampanje?*
+
+Prvo ćemo pogledati korelacije između podataka.
+
+```{r, warning= FALSE, fig.show='hold'}
+cor_matrix <- cor(marketingData[c("age","balance","previous_contacts_count","campaign_contacts_count","last_contact_duration")])
+cor_matrix
+```
+
+Ne vidimo veliku korelaciju između ovih podataka.
+
+### Logistička regresija
+
+```{r, warning= FALSE, fig.show='hold'}
+marketingData$job <- as.factor(marketingData$job)
+marketingData$job <- relevel(marketingData$job, ref = "unknown")
+marketingData$marital_status <- as.factor(marketingData$marital_status)
+marketingData$education <- as.factor(marketingData$education)
+marketingData$education <- relevel(marketingData$education, ref = "unknown")
+marketingData$previous_campaign_outcome <- as.factor(marketingData$previous_campaign_outcome)
+marketingData$previous_campaign_outcome <- relevel(marketingData$previous_campaign_outcome, ref = "unknown")
+marketingData$housing_loan <- as.factor(marketingData$housing_loan)
+marketingData$personal_loan <- as.factor(marketingData$personal_loan)
+marketingData$term_deposit_accepted <- ifelse(marketingData$term_deposit_accepted == "yes", 1, 0)
+marketingData$housing_loan <- ifelse(marketingData$housing_loan == "yes", 1, 0)
+marketingData$personal_loan <- ifelse(marketingData$personal_loan == "yes", 1, 0)
+
+marketingData %>%
+  count(term_deposit_accepted)
+```
+
+```{r, warning= FALSE, fig.show='hold'}
+weights <- ifelse(marketingData$term_deposit_accepted == 1, 9, 1)
+model <- glm(term_deposit_accepted ~ age + job + marital_status + education + balance + default + housing_loan + personal_loan + last_contact_duration + previous_contacts_count + campaign_contacts_count + previous_campaign_outcome, data = marketingData, family = binomial(),weights=weights)
+summary(model)
+```
+
+Vidimo kako imamo nekoliko parametara koji nisu značajni, ali ti parametri su specifični unutar kategorija te ih nismo uspjeli kategorijski razdvojiti.
+
+Prije izrade novog modela ćemo pogledati neke mjere kvalitete modela.
+
+```{r, warning= FALSE, fig.show='hold'}
+yHat <- model$fitted.values > 0.5
+tab <- table(marketingData$term_deposit_accepted,yHat)
+cat("\n")
+tab
+
+accuracy = sum(diag(tab)) / sum(tab)
+precision = tab[2,2] / sum(tab[,2])
+recall = tab[2,2] / sum(tab[2,])
+specificity = tab[1,1] / sum(tab[,1])
+cat("\naccuracy:", accuracy)
+
+cat("\nprecision:", precision)
+cat("\nrecall:", recall)
+cat("\nspecificity:", specificity)
+
+F1 = 2 * ((precision*recall)/(precision+recall))
+cat("\nF1:", F1)
+Rsq = 1 - model$deviance/model$null.deviance
+cat("RSQ", Rsq)
+
+```
+
+Vidimo da imamo točnost preko 80% dok nam je preciznost tek nešto iznad 36%. U trenutnom slučaju smatramo F1 kao najbolju opisnu mjeru ovog modela jer balansira točnost i preciznost. To nam je bitno jer znamo da imamo veliku neuravnoteženost između 0 i 1 u podatcima te bi i "najgluplji" model mogao u ovakvom skupu podataka imati popriličnost visoku točnost.
+
+Razmatramo maknuti varijablu "previouse_contact_count" te provodimo Kruskall-Wallis test kako bi provjerili postojanje korelacije.
+
+```{r, warning= FALSE, fig.show='hold'}
+stripped <- select(marketingData, c("previous_contacts_count", "previous_campaign_outcome"))
+final <- subset(stripped, previous_campaign_outcome != "unknown")
+# Micanje stršećih vrijenosti
+final <- subset(final, previous_contacts_count <=50)
+
+prev_success  = final[final$previous_campaign_outcome=="success",]
+prev_failure  = final[final$previous_campaign_outcome=="failure",]
+prev_other  = final[final$previous_campaign_outcome=="other",]
+cat("Srednje vrijednosti:\n")
+cat( mean(prev_success$previous_contacts_count),'\n')
+cat( mean(prev_failure$previous_contacts_count),'\n')
+cat( mean(prev_other$previous_contacts_count),'\n')
+data <- data.frame(
+  value = c(prev_success$previous_contacts_count, prev_failure$previous_contacts_count, prev_other$previous_contacts_count),
+  group = rep(c("success", "failure", "other"), times = c(length(prev_success$previous_contacts_count), length(prev_failure$previous_contacts_count), length(prev_other$previous_contacts_count)))
+)
+kruskal_result <- kruskal.test(value ~ group, data = data)
+print(kruskal_result)
+```
+
+Primjenom Kruskal-Wallis odbacujemo hipotezu H0(medijani su isti) u koristi H1(medijani su različiti) i time zapravo vidimo kako postoji korelacija između broja komunikacija i ishoda prošle kampanje te možemo maknuti jedan od tih regresora. Pretpostavili smo da nema razloga da neki razgovori traju dulje ili kraće u ovisnosti u ishodu kampanje ukoliko nisu korelirani.
+
+Ponovo izrađujemo model logističke regresije.
+
+```{r, warning= FALSE, fig.show='hold'}
+reduced_model <- glm(term_deposit_accepted ~ age + job  + last_contact_duration  + default + housing_loan + personal_loan  + campaign_contacts_count + previous_campaign_outcome,data = marketingData, family = binomial(),weights=weights)
+# summary(reduced_model)
+
+```
+
+```{r, warning= FALSE, fig.show='hold'}
+yHat <- reduced_model$fitted.values > 0.5
+tab <- table(marketingData$term_deposit_accepted,yHat)
+tab
+accuracy = sum(diag(tab)) / sum(tab)
+precision = tab[2,2] / sum(tab[,2])
+recall = tab[2,2] / sum(tab[2,])
+specificity = tab[1,1] / sum(tab[,1])
+
+cat("\naccuracy:", accuracy)
+cat("\nprecision:", precision)
+cat("\nrecall:", recall)
+cat("\nspecificity:", specificity)
+
+
+F1 = 2 * ((precision*recall)/(precision+recall))
+cat("\nF1:", F1)
+
+Rsq = 1 - reduced_model$deviance/reduced_model$null.deviance
+cat("\nRSQ: ", Rsq)
+
+```
+
+### Zaključak
+
+Prvo što smo uspjeli postići je smanjenje broja regresora, a da pri tome dobijemo jako bliske rezultate kao i s potpunim modelom. To nam je naravno bio i cilj jer time lakše možemo donositi daljnje zaključke i lakše možemo objasniti neke pojave. Također zaključujemo da je izrazito teško odrediti što specifično utječe na uspješnost kampanje jer i dalje imamo dosta regresora. I dalje ne možemo reći da model može predvidjeti uspješnost kampanje iako ima dobru točnost zato što mu je preciznost poprilično loša. Uzrok tome bi mogli biti razni faktori, ali mislimo da je najveći faktor neuravnoteženost između distribucije nula i jedinica u samom uzorku. To je dakako teško promjeniti jer uvijek očekujemo da će izrazito mali broj ljudi uzeti kredit uz neku kampanju.
+
+Možda bi nam uspješnost kampanje bila bolje interpretirana da napravimo usporedbu između dvije vrste kampanje ili nečega sličnog kao što je i navedeno u opisu i motivaciji problema.
