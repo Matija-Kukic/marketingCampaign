@@ -100,3 +100,8 @@ require(fastDummies)
 dummies = dummy_cols(data,select_columns='job')
 dummies
 ```
+
+```{r corr matrice}
+cor_matrix <- cor(data[c("age","balance","previous_contacts_count","campaign_contacts_count","last_contact_duration")])
+cor_matrix
+```
