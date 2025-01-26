@@ -1,6 +1,6 @@
 ---
 title: "Analiza uspješnosti marketinške kampanje"
-author: "Andrija Petrusić, Matija Luka Kukić, Dominik Gračner, Ivan Džanija"
+author: "Andrija Petrušić, Matija Luka Kukić, Dominik Gračner, Ivan Džanija"
 date: "2025-01-15"
 output: pdf_document
 ---
