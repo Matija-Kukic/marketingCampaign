@@ -1,5 +1,6 @@
 ---
 title: "Projekt"
+author: "Matija Kukic"
 output: pdf_document
 ---
 
@@ -26,6 +27,7 @@ tab
 ```{r logisticka regresija}
 
 data$job <- as.factor(data$job)
+data$job <- relevel(data$job, ref = "unknown")
 data$marital_status <- as.factor(data$marital_status)
 data$education <- as.factor(data$education)
 data$education <- relevel(data$education, ref = "unknown")
@@ -57,7 +59,7 @@ Rsq = 1 - model$deviance/model$null.deviance
 Rsq
 
 yHat <- model$fitted.values > 0.5
-tab <- table(data$term_deposit_accepted, yHat)
+tab <- table(data$term_deposit_accepted,yHat)
 
 tab
 
@@ -84,7 +86,7 @@ F1
 
 Vidimo da je, ako je osoba umirovljenik ili student, veća šansa da kampanja bude uspješna, dok broj godina i činjenica da je klijent u braku ne povećavaju ni smanjuju puno šanse. Također je vidljivo da model jako slabo opisuje rezultat. Možemo pokušati reducirati model te testirati poboljšava li to $R^2$
 
-```{r LM za reducirani model}
+```{r posao umjesto marital status}
 
 reduced_model <- glm(term_deposit_accepted ~ age + job  + education + balance + default + housing_loan + personal_loan + last_contact_duration + previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial,weights=weights)
 
@@ -95,13 +97,56 @@ Rsq
 
 ```
 
-```{r dummy variables}
-require(fastDummies)
-dummies = dummy_cols(data,select_columns='job')
-dummies
-```
 
 ```{r corr matrice}
 cor_matrix <- cor(data[c("age","balance","previous_contacts_count","campaign_contacts_count","last_contact_duration")])
 cor_matrix
+```
+
+```{r logisticka marital status umjesto posao}
+
+reduced_model <- glm(term_deposit_accepted ~ age + marital_status  + education + balance + default + housing_loan + personal_loan + last_contact_duration + previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial,weights=weights)
+
+summary(reduced_model)
+
+Rsq = 1 - reduced_model$deviance/model$null.deviance
+Rsq
+#nije dobar 
+```
+
+```{r logisticka sa loanom bez balanca}
+
+reduced_model <- glm(term_deposit_accepted ~ age + job + marital_status + education  + default + housing_loan + personal_loan + last_contact_duration + previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial,weights=weights)
+
+Rsq = 1 - reduced_model$deviance/model$null.deviance
+Rsq
+#jako dobar !!
+
+```
+
+```{r logisticka sa balancom bez loanova}
+
+reduced_model <- glm(term_deposit_accepted ~ age + job + marital_status + education+balance  + default + last_contact_duration + previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial,weights=weights)
+
+Rsq = 1 - reduced_model$deviance/model$null.deviance
+Rsq
+#jako los odbacujemo balance
+
+```
+
+```{r bez duljine kontakta koje objasnja edukacija}
+reduced_model <- glm(term_deposit_accepted ~ age + job + marital_status + last_contact_duration + balance + default + housing_loan + personal_loan +   previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial,weights=weights)
+
+#summary(reduced_model)
+Rsq = 1 - reduced_model$deviance/model$null.deviance
+Rsq
+#jako dobro!!
+```
+
+```{r reducirani nakon 3 tocke}
+reduced_model <- glm(term_deposit_accepted ~ age + job  + last_contact_duration  + default + housing_loan + personal_loan +   previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial,weights=weights)
+
+summary(reduced_model)
+Rsq = 1 - reduced_model$deviance/model$null.deviance
+Rsq
 ```

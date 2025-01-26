@@ -4,6 +4,7 @@ author: "Dominik Gračner"
 date: "2025-01-20"
 output: pdf_document
 ---
+
 Imaju li klijenti s otvorenim kreditom više novca na računu od ostalih klijenata?
 
 ```{r setup, include=FALSE}
@@ -18,12 +19,13 @@ library(dplyr)
 Učitavamo podatke:
 
 ```{r}
-data <- read.csv("C:/Faks/SAP/sap/data.csv")
+data <- read.csv("../data/data.csv")
 head(data)
 
 ```
 
 Uzimamo stupce koji su nam bitni - kredit i stanje računa te dodajmo stupac koji sadrži "yes" ako klijent ima neki od dva kredita, a inače "no".
+
 ```{r}
 stripped = select(data, c("balance", "housing_loan", "personal_loan"))
 stripped$open_any_loan <- ifelse(stripped$housing_loan == "yes" | stripped$personal_loan == "yes", "yes", "no")
@@ -31,7 +33,9 @@ head(stripped)
 summary(stripped)
 
 ```
+
 Provjerimo vrijednosti kategoričkih podataka i nalazimo li na neodređene vrijednosti. Također provjerimo broj negativnih vrijednosti stanja računa zbog potrebe kompresije za log funkciju i grafički prikaz.
+
 ```{r}
 'Moguće vrijednosti za stambeni kredit: '
 unique(stripped$housing_loan)
@@ -79,7 +83,9 @@ hist(log(stripped$balance),main='stanje računa bez negativnih vrijednosti', xla
 
 
 ```
+
 Primjećujemo postojanje nekih outliera, analiziramo njihovu frekvenciju te ih uklanjamo ukoliko je neznačajna.
+
 ```{r}
 stripped$z <- scale(stripped$balance)
 summary(stripped$z)
@@ -110,9 +116,6 @@ boxplot(otvoren$balance, neotvoren$balance,
 
 ```
 
-
-
-
 Provjeravamo pretpostavku normalnosti i nezavisnosti. Nezavisnost pretpostavljamo. Normalnost provjeravamo histogramom, qq-plotom i KS-testom.
 
 ```{r}
@@ -134,11 +137,11 @@ lillie.test(neotvoren$balance)
 ```
 Zaključujemo da stanje računa nije normalno distribuirano.
 Dalje provjeravamo homogenost varijanci pomoću Lavene testa zbog nenormalnosti podataka.
-
 ```{r}
 combined <- rbind(otvoren, neotvoren)
 leveneTest(balance ~ open_any_loan, data = combined)
 ```
+
 Odbacujemo nultu hipotezu i zaključujemo da varijance nisu jednake.
 
 Očito ne možemo koristiti t-test zbog nepostojanja pretpostavki tako da ćemo koristiti neparametarski Mann-Whitney U test.
@@ -146,4 +149,5 @@ Očito ne možemo koristiti t-test zbog nepostojanja pretpostavki tako da ćemo 
 ```{r}
 wilcox.test(otvoren$balance, neotvoren$balance)
 ```
-Odbacujemo nultu hipotezu i zaključujemo da srednje vrijednosti uistinu nisu jednake. Analiziranjem iznosa srednjih vrijednosti vidimo da klijenti  bez otvorenog kredita imaju veće stanje računa.
+
+Odbacujemo nultu hipotezu i zaključujemo da srednje vrijednosti uistinu nisu jednake. Analiziranjem iznosa srednjih vrijednosti vidimo da klijenti bez otvorenog kredita imaju veće stanje računa.

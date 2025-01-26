@@ -1,6 +1,6 @@
 ---
 title: "treca_tocka"
-author: "Dominik Gračner"
+author: "Dominik Gračner i Matija Kukic"
 date: "2025-01-25"
 output: pdf_document
 ---
@@ -13,7 +13,7 @@ library(dplyr)
 Učitavamo podatke:
 
 ```{r}
-data <- read.csv("C:/Faks/SAP/sap/data.csv")
+data <- read.csv("../data/data.csv")
 head(data)
 
 ```
@@ -24,10 +24,10 @@ Uzimamo stupce koji su nam bitni - trajanje poziva i razina obrazovanja.
 stripped = select(data, c("last_contact_duration", "education"))
 head(stripped)
 summary(stripped)
-
 ```
 
 Provjerimo vrijednosti kategoričkih podataka i nalazimo li na neodređene vrijednosti.
+
 ```{r}
 'Moguće vrijednosti za stupanj obrazovanja: '
 unique(stripped$education)
@@ -58,9 +58,9 @@ primary = final[final$education == 'primary',]
 secondary = final[final$education == 'secondary',]
 tertiary = final[final$education == 'tertiary',]
 
-cat('Prosječno trajanje razgovora - primary: ', mean(primary$last_contact_duration))
-cat('\nProsječno trajanje razgovora - secondary: ', mean(secondary$last_contact_duration))
-cat('\nProsječno trajanje razgovora - tertiary: ', mean(tertiary$last_contact_duration))
+cat('Prosječno trajanje razgovora - primary: ', median(primary$last_contact_duration))
+cat('\nProsječno trajanje razgovora - secondary: ', median(secondary$last_contact_duration))
+cat('\nProsječno trajanje razgovora - tertiary: ', median(tertiary$last_contact_duration))
 
 boxplot(primary$last_contact_duration, secondary$last_contact_duration, tertiary$last_contact_duration,  
         names = c('primary','secondary', 'tertiary'),
@@ -72,6 +72,7 @@ boxplot(primary$last_contact_duration, secondary$last_contact_duration, tertiary
 Provjerimo normalnost i homogenost varijanci, pretpostavljamo nezavisnost grupa.
 
 ```{r}
+library(nortest)
 hist(primary$last_contact_duration, 
      main='Histogram primary',
      xlab='Duljina poziva')
@@ -92,29 +93,52 @@ qqline(secondary$last_contact_duration, col = "steelblue", lwd = 2)
 qqnorm(tertiary$last_contact_duration, pch = 1, frame = FALSE,main='tertiary')
 qqline(tertiary$last_contact_duration, col = "steelblue", lwd = 2)
 
-ks.test(primary$last_contact_duration, "pnorm", mean = mean(primary$last_contact_duration), sd = sd(primary$last_contact_duration))
-ks.test(secondary$last_contact_duration, "pnorm", mean = mean(secondary$last_contact_duration), sd = sd(secondary$last_contact_duration))
-ks.test(tertiary$last_contact_duration, "pnorm", mean = mean(tertiary$last_contact_duration), sd = sd(tertiary$last_contact_duration))
+#ks.test(primary$last_contact_duration, "pnorm", mean = mean(primary$last_contact_duration), sd = sd(primary$last_contact_duration))
+#ks.test(secondary$last_contact_duration, "pnorm", mean = mean(secondary$last_contact_duration), sd = sd(secondary$last_contact_duration))
+#ks.test(tertiary$last_contact_duration, "pnorm", mean = mean(tertiary$last_contact_duration), sd = sd(tertiary$last_contact_duration))
+lillie.test(primary$last_contact_duration)
+lillie.test(secondary$last_contact_duration)
+lillie.test(tertiary$last_contact_duration)
+```
+
+Zaključujemo da stanje računa nije normalno distribuirano. Dalje provjeravamo homogenost varijanci.
+
+```{r}
+#var.test(primary$last_contact_duration, secondary$last_contact_duration)
+#var.test(primary$last_contact_duration, tertiary$last_contact_duration)
+#var.test(secondary$last_contact_duration, tertiary$last_contact_duration)
+
+fligner.test(list(primary$last_contact_duration, secondary$last_contact_duration, tertiary$last_contact_duration))
 
 ```
 
-Zaključujemo da stanje računa nije normalno distribuirano.
-Dalje provjeravamo homogenost varijanci.
+Varijance su homogene
+
 
 ```{r}
-var.test(primary$last_contact_duration, secondary$last_contact_duration)
-var.test(primary$last_contact_duration, tertiary$last_contact_duration)
-var.test(secondary$last_contact_duration, tertiary$last_contact_duration)
-```
+data <- data.frame(
+  value = c(primary$last_contact_duration, secondary$last_contact_duration, tertiary$last_contact_duration),  # The actual values
+  group = rep(c("primary", "secondary", "tertiary"), times = c(length(primary$last_contact_duration), length(secondary$last_contact_duration), length(tertiary$last_contact_duration)))  # Group labels
+)
 
-Primjećujemo da razlika nije velika i da se je kod jednog testa p-vrijednost veća od 0.05, ali uzevši u obzir da ostale veze nalažu razliku u varijancama, ne možemo zaključiti ništa s dovoljnom sigurnošću o varijancama.
+# Perform the Kruskal-Wallis test
+kruskal_result <- kruskal.test(value ~ group, data = data)
 
-Očito ne možemo koristiti t-test zbog nepostojanja pretpostavki tako da ćemo koristiti neparametarski Mann-Whitney U test.
-
-```{r}
-wilcox.test(primary$last_contact_duration, secondary$last_contact_duration)
-wilcox.test(primary$last_contact_duration, tertiary$last_contact_duration)
-wilcox.test(secondary$last_contact_duration, tertiary$last_contact_duration)
+# View the result of the test
+print(kruskal_result)
 ```
 
 Samo u vezi primarna-ternarna razina obrazovanja se pojavljuje p-vrijednost dovoljno velika da ne bi odbacili hipotezu. Također kada pogledamo iznose srednjih vrijednosti vidimo da se ne razlikuju zančajno, ako uopće. Zaključujemo da se ovisno o razini obrazovanja ne mijenja duljina trajanja poziva - varijable nisu zavisne.
+
+```{r}
+combined <- c(secondary$last_contact_duration, tertiary$last_contact_duration)  # Combine these two groups
+
+# Combine the data into a single data frame
+data <- data.frame(
+  value = c(primary$last_contact_duration, combined),  # The actual values
+  group = rep(c("primary", "combined"), times = c(length(primary$last_contact_duration), length(combined)))  # Group labels
+)
+wilcox.test(secondary$last_contact_duration, tertiary$last_contact_duration)
+wilcox.test(primary$last_contact_duration, tertiary$last_contact_duration)
+wilcox.test(primary$last_contact_duration, secondary$last_contact_duration)
+```
