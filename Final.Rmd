@@ -5,12 +5,13 @@ date: "2025-01-15"
 output: pdf_document
 ---
 
-```{r setup, include=FALSE, echo=T, error=FALSE, warning=FALSE, message=FALSE}
+```{r,setup, include=FALSE, echo=T, error=FALSE, warning=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
 library('dplyr')
 ```
 
-```{r echo = FALSE}
+```{r, echo = FALSE, warning=FALSE}
 marketingData <- read.csv("data/data.csv")
 # head(marketingData)
 ```
@@ -19,11 +20,11 @@ marketingData <- read.csv("data/data.csv")
 
 Generalni pregled podataka i vizualizacija.
 
-```{r Descriptive statistics, echo=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 # summary(marketingData)
 ```
 
-```{r, echo=FALSE}
+```{r, echo = FALSE, warning=FALSE}
 deposit_count <- table(marketingData$term_deposit_accepted)
 cat("Uplaćen depozit(uspješna kampanja) - Binarna varijabla\n")
 cat(deposit_count)
@@ -49,7 +50,7 @@ cat("\nIma li osobni zajam?\n")
 cat(personal_loan_count)
 ```
 
-```{r}
+```{r, echo = FALSE, warning=FALSE}
 barplot(table(marketingData$job), main = "Posao",
         col = "lightblue",
         ylab = "Frekvencija",
@@ -61,7 +62,7 @@ barplot(table(marketingData$job), main = "Posao",
 
 Prvo ćemo provjeriti imamo li nedostajućih vrijednosti i uzeti samo stupce koji su nam bitni za ovo testiranje. Također iz stupca "job" ćemo makuti vrijednosti "unknown" jer ne nose nikakvu informaciju za ovo testiranje.
 
-```{r}
+```{r, echo = FALSE, warning=FALSE}
 rel = marketingData[names(marketingData) %in% c('job','marital_status')]
 rel = rel[rel$job != 'unknown', ]
 status <- c('job', 'marital_status')
@@ -88,13 +89,13 @@ Pretpostavke:
 
 Izrađujemo kontigencijsku tablicu i provjeravamo kolika je očekivana vrijednost za svaku ćeliju.
 
-```{r}
+```{r, echo = FALSE, warning=FALSE}
 tab = addmargins(table(rel$job,rel$marital_status))
 cat("\t\tKontigencijska tablica\n")
 print(tab)
 ```
 
-```{r}
+```{r, echo = FALSE, warning=FALSE}
 cat("H0: Kategorijski podatci su nezavisni\n")
 cat("H1: Kategorijski podatci nisu nezavisni\n")
 cat("Alpha value = 0.05\n")
@@ -127,7 +128,7 @@ Pretpostavke:
 
 Uzimamo stupce koji su nam bitni - kredit i stanje računa te dodajmo stupac koji sadrži "yes" ako klijent ima neki od dva kredita, a inače "no".
 
-```{r}
+```{r, echo = FALSE, warning=FALSE}
 stripped = select(marketingData, c("balance", "housing_loan", "personal_loan"))
 stripped$open_any_loan <- ifelse(stripped$housing_loan == "yes" | stripped$personal_loan == "yes", "yes", "no")
 summary(stripped)
@@ -135,7 +136,7 @@ summary(stripped)
 
 Provjerimo vrijednosti kategoričkih podataka i nalazimo li na nedostajuće vrijednosti.
 
-```{r, echo=FALSE}
+```{r, echo = FALSE, warning=FALSE}
 'Moguće vrijednosti za stambeni kredit: '
 unique(stripped$housing_loan)
 'Moguće vrijednosti za osobni zajam: '
@@ -160,7 +161,7 @@ Vidimo kako nema nedostajućih vrijednosti.
 
 Vizualiziramo podatke i provodimo moguće testove na normalnost podataka.
 
-```{r}
+```{r, echo = FALSE, warning=FALSE}
 hloan <- table(stripped$housing_loan)
 cat("\nIma li stambeni kredit?")
 print(hloan)
@@ -187,7 +188,7 @@ hist(log(stripped$balance),main='Financijsko stanje bez negativnih vrijednosti -
 
 Primjećujemo postojanje velikih outliera, analiziramo njihovu frekvenciju te ih uklanjamo ukoliko nije značajna.
 
-```{r}
+```{r, echo = FALSE, warning=FALSE}
 stripped$z <- scale(stripped$balance)
 summary(stripped$z)
 cat('\nbroj vrijednosti sa z-vrijednošću većom od 3.29: ',sum(stripped$z > 3))
@@ -200,7 +201,7 @@ final <- subset(final, balance >= quantile(balance, 0.01) & balance <= quantile(
 
 Vidimo kako su stršeće vrijednosti stvarno samo manjina podataka te ćemo i maknuti kako bi mogli lakše dalje vizualizirati i provoditi testove bez da pretjerano utječju stršeće vrijednosti. Izbacujemo samo 2% podataka.
 
-```{r}
+```{r, echo = FALSE, warning=FALSE}
 otvoren = final[final$open_any_loan == 'yes',]
 neotvoren = final[final$open_any_loan == 'no',]
 
@@ -216,7 +217,7 @@ boxplot(otvoren$balance, neotvoren$balance,
 
 Sada ćemo vizualizirati histogramom i qq-plotom izgled distribucija te ćemo također provesti Kolmogorov-Smirnov test. Za Kolmogorov-Smirnov moramo testirati specifičnu distribuciju što znači da moramo prosljediti i parametre distribucije prema kojoj hoćemo testirati.
 
-```{r}
+```{r, echo = FALSE, warning=FALSE}
 hist(otvoren$balance, 
      main='Histogram stanja računa klijenata s otvorenim kreditom',
      xlab='Stanje računa u eurima')
@@ -241,7 +242,7 @@ Zaključak: Odbacujemo H0(normalnost distribucije) u koristi H1(nemamo normalnos
 
 Pošto nemamo pretpostavku normalnosti ne možemo koristiti T-test te provodimo neparametarski test. Test koji provodimo je Mann-Whitney-Wilcoxonov test/Mann–Whitney U test/Wilcoxon rank-sum test
 
-```{r}
+```{r, echo = FALSE, warning=FALSE}
 cat("H0: Medijani su jednaki\n")
 cat("H1: Medijani su različiti\n")
 cat("Alpha value = 0.05\n")
@@ -251,3 +252,96 @@ wilcox.test(otvoren$balance, neotvoren$balance, paired = FALSE)
 ### Zaključak
 
 Nismo mogli provesti T-test jer nismo imali zadovoljenu pretpostavku normalnosti te smo odlučili provesti neparametarski MWW/MWU test za 2 nezavisna uzorka. Na temelju testa odbacujemo H0(medijani su jednaki) u koristi H1(medijani su različiti) na razini značajnosti $\alpha$ = 5%.
+
+## *Postoji li razlika trajanja poziva marketinške kampanje među klijentima različitog stupnja obrazovanja?*
+
+Prvo uzimamo samo podatke koji su nam potrebni za provedbu ovog testa te provjeravamo postoje li nedostajuće vrijednosti. Također ćemo maknuti podatke za "education" s vrijednosti "unknown" jer nam ne nose informaciju u ovom testiranju.
+
+```{r}
+stripped = select(marketingData, c("last_contact_duration", "education"))
+
+for (col_name in names(stripped)){
+  if (sum(is.na(stripped[,col_name])) > 0){
+    cat('Ukupno nedostajućih vrijednosti za varijablu ',col_name, ': ', sum(is.na(stripped[,col_name])),'\n')
+  }
+}
+final <- subset(stripped, education != "unknown")
+```
+
+Razdvajamo podatke na 3 različite skupine: Primary, Secondary i Tertiary koje predstavljuju stupnjeve obrazovanja klijenata
+
+```{r}
+primary = final[final$education == 'primary',]
+secondary = final[final$education == 'secondary',]
+tertiary = final[final$education == 'tertiary',]
+
+cat('Prosječno trajanje razgovora - primary: ', median(primary$last_contact_duration))
+cat('\nProsječno trajanje razgovora - secondary: ', median(secondary$last_contact_duration))
+cat('\nProsječno trajanje razgovora - tertiary: ', median(tertiary$last_contact_duration))
+
+```
+
+Za provođenje ovog istraživačko pitanja razmatramo ANOVA test.
+
+Pretpostavke:
+
+-   Normalna distribucija podataka unutar pojedine skupine
+
+-   Homogenost varijance između skupina(homoskedastičnost)
+
+-   Nezavisnost podataka - zadovoljeno
+
+### Provjera normalnosti podataka
+
+Distribuciju podataka unutar svake skupine prikazati ćemo histogramom i qq-plotom. Također testiramo normalnost Lilliforsovom inačicom Kolmogorov-Smirnovljeva testa.
+
+```{r}
+library(nortest)
+hist(primary$last_contact_duration, 
+     main='Histogram primary',
+     xlab='Duljina poziva')
+hist(secondary$last_contact_duration, 
+     main='Histogram secondary',
+     xlab='Duljina poziva')
+hist(tertiary$last_contact_duration, 
+     main='Histogram tertiary',
+     xlab='Duljina poziva')
+
+
+qqnorm(primary$last_contact_duration, pch = 1, frame = FALSE,main='primary')
+qqline(primary$last_contact_duration, col = "steelblue", lwd = 2)
+
+qqnorm(secondary$last_contact_duration, pch = 1, frame = FALSE,main='secondary')
+qqline(secondary$last_contact_duration, col = "steelblue", lwd = 2)
+
+qqnorm(tertiary$last_contact_duration, pch = 1, frame = FALSE,main='tertiary')
+qqline(tertiary$last_contact_duration, col = "steelblue", lwd = 2)
+
+cat("Alpha value = 0.05\n")
+lillie.test(primary$last_contact_duration)
+lillie.test(secondary$last_contact_duration)
+lillie.test(tertiary$last_contact_duration)
+```
+
+Zaključak: Odbacujemo H0(normalnost distribucije) u koristi H1(nemamo normalnost distribucije) za sve uzorke. Znači ne možemo koristiti ANOVA test te onda nemamo ni potrebe dalje testirati homoskedastičnost uzoraka.
+
+### Neparametski test
+
+Pošto nemamo pretpostavku normalnosti ne možemo koristiti ANOVA test te provodimo neparametarski test. Test koji provodimo je Kruskal–Wallis test.
+Jedini uvjet za primjenjivos Kruskal-Wallis testa je: veličina svakog uzorka barem 5 što je zadovoljeno.
+
+```{r}
+data <- marketingData
+data <- data.frame(
+  value = c(primary$last_contact_duration, secondary$last_contact_duration, tertiary$last_contact_duration),  
+  group = rep(c("primary", "secondary", "tertiary"), times = c(length(primary$last_contact_duration), length(secondary$last_contact_duration), length(tertiary$last_contact_duration)))
+)
+cat("H0: Medijani su jednaki\n")
+cat("H1: Medijani su različiti\n")
+cat("Alpha value = 0.05\n")
+kruskal_result <- kruskal.test(value ~ group, data = data)
+print(kruskal_result)
+```
+### Zaključak 
+
+Nismo mogli provesti ANOVA test jer nismo imali zadovoljenu pretpostavku normalnosti te smo odlučili provesti neparametarski Kruskal-Wallis test. Na temelju testa odbacujemo H0(medijani su jednaki) u koristi H1(medijani su različiti) na razini značajnosti $\alpha$ = 5%.
