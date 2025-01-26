@@ -134,7 +134,7 @@ Rsq
 
 ```
 
-```{r bez duljine kontakta koje objasnja edukacija}
+```{r sa duljinom kontakta bez educationa}
 reduced_model <- glm(term_deposit_accepted ~ age + job + marital_status + last_contact_duration + balance + default + housing_loan + personal_loan +   previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial,weights=weights)
 
 #summary(reduced_model)
@@ -142,9 +142,41 @@ Rsq = 1 - reduced_model$deviance/model$null.deviance
 Rsq
 #jako dobro!!
 ```
+```{r sa  sa educationa bez duljinom kontakta}
+reduced_model <- glm(term_deposit_accepted ~ age + job + marital_status + education + balance + default + housing_loan + personal_loan +   previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial,weights=weights)
+
+#summary(reduced_model)
+Rsq = 1 - reduced_model$deviance/model$null.deviance
+Rsq
+#UZASS!!
+```
+
 
 ```{r reducirani nakon 3 tocke}
 reduced_model <- glm(term_deposit_accepted ~ age + job  + last_contact_duration  + default + housing_loan + personal_loan +   previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial,weights=weights)
+
+summary(reduced_model)
+Rsq = 1 - reduced_model$deviance/model$null.deviance
+Rsq
+```
+
+```{r reducirani sa brojev prijasnjih bez outcome}
+reduced_model <- glm(term_deposit_accepted ~ age + job + marital_status + education + balance + default + housing_loan + personal_loan + last_contact_duration + previous_contacts_count + campaign_contacts_count,data = data, family = binomial,weights=weights)
+
+Rsq = 1 - reduced_model$deviance/model$null.deviance
+Rsq
+#lose
+```
+```{r reducirani sa outcome bez brojeva prijasnjih kontakta}
+reduced_model <- glm(term_deposit_accepted ~ age + job + marital_status + education + balance + default + housing_loan + personal_loan + last_contact_duration + previous_campaign_outcome + campaign_contacts_count,data = data, family = binomial,weights=weights)
+
+Rsq = 1 - reduced_model$deviance/model$null.deviance
+Rsq
+#odlicno!! micemo count
+```
+
+```{r reducirani nakon 3 tocke i secret :) }
+reduced_model <- glm(term_deposit_accepted ~ age + job  + last_contact_duration  + default + housing_loan + personal_loan  + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial,weights=weights)
 
 summary(reduced_model)
 Rsq = 1 - reduced_model$deviance/model$null.deviance

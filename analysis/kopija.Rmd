@@ -1,0 +1,289 @@
+---
+title: "Projekt"
+author: "Matija Kukic"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Podatci o korisnicima
+
+```{r podatci}
+# Ucitavanje podataka
+data = read.csv('../data/data.csv')
+summary(data)
+```
+```{r corr matrice}
+cor_matrix <- cor(data[c("age","balance","previous_contacts_count","campaign_contacts_count","last_contact_duration")])
+cor_matrix
+```
+
+Možemo pogledati ovisnost godišta, posla, bračnog statusa, edukacije te kredita na uspješnost kampanje.
+
+
+```{r logisticka regresija}
+
+data$job <- as.factor(data$job)
+data$job <- relevel(data$job, ref = "unknown")
+data$marital_status <- as.factor(data$marital_status)
+data$education <- as.factor(data$education)
+data$education <- relevel(data$education, ref = "unknown")
+data$previous_campaign_outcome <- as.factor(data$previous_campaign_outcome)
+data$previous_campaign_outcome <- relevel(data$previous_campaign_outcome, ref = "unknown")
+data$housing_loan <- as.factor(data$housing_loan)
+data$personal_loan <- as.factor(data$personal_loan)
+
+data$term_deposit_accepted <- ifelse(data$term_deposit_accepted == "yes", 1, 0)
+data$housing_loan <- ifelse(data$housing_loan == "yes", 1, 0)
+data$personal_loan <- ifelse(data$personal_loan == "yes", 1, 0)
+
+
+
+require(dplyr)
+
+data %>%
+  count(term_deposit_accepted)
+
+weights <- ifelse(data$term_deposit_accepted == 1, 9, 1)
+
+
+model <- glm(term_deposit_accepted ~ age + job + marital_status + education + balance + default + housing_loan + personal_loan + last_contact_duration + previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial(),weights=weights)
+
+summary(model)
+```
+
+```{r analiza}
+#help("glm")
+Rsq = 1 - model$deviance/model$null.deviance
+Rsq
+
+yHat <- model$fitted.values > 0.5
+tab <- table(data$term_deposit_accepted,yHat)
+
+tab
+
+
+accuracy = sum(diag(tab)) / sum(tab)
+precision = tab[2,2] / sum(tab[,2])
+recall = tab[2,2] / sum(tab[2,])
+specificity = tab[1,1] / sum(tab[,1])
+
+cat("\naccuracy:")
+accuracy
+cat("\nprecision:")
+precision
+cat("\nrecall:")
+recall
+cat("\nspecificity:")
+specificity
+
+F1 = 2 * ((precision*recall)/(precision+recall))
+cat("\nF1:")
+F1
+
+```
+
+
+```{r posao umjesto marital status}
+
+reduced_model <- glm(term_deposit_accepted ~ age + job  + education + balance + default + housing_loan + personal_loan + last_contact_duration + previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial(),weights=weights)
+
+summary(reduced_model)
+
+Rsq = 1 - reduced_model$deviance/reduced_model$null.deviance
+Rsq
+anova(model, reduced_model, test = "LRT")
+
+```
+
+
+
+```{r logisticka marital status umjesto posao}
+
+reduced_model <- glm(term_deposit_accepted ~ age + marital_status  + education + balance + default + housing_loan + personal_loan + last_contact_duration + previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial(),weights=weights)
+
+#summary(reduced_model)
+
+Rsq = 1 - reduced_model$deviance/reduced_model$null.deviance
+Rsq
+anova(model, reduced_model, test = "LRT")
+#nije dobar 
+```
+
+```{r logisticka sa loanom bez balanca}
+
+reduced_model <- glm(term_deposit_accepted ~ age + job + marital_status + education  + default + housing_loan + personal_loan + last_contact_duration + previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial(),weights=weights)
+
+Rsq = 1 - reduced_model$deviance/reduced_model$null.deviance
+Rsq
+anova(model, reduced_model, test = "LRT")
+#jako dobar !!
+
+```
+
+```{r logisticka sa balancom bez loanova}
+
+reduced_model <- glm(term_deposit_accepted ~ age + job + marital_status + education+balance  + default + last_contact_duration + previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial(),weights=weights)
+
+Rsq = 1 - reduced_model$deviance/reduced_model$null.deviance
+Rsq
+anova(model, reduced_model, test = "LRT")
+#jako los odbacujemo balance
+
+```
+
+```{r sa duljinom kontakta bez educationa}
+reduced_model <- glm(term_deposit_accepted ~ age + job + marital_status + last_contact_duration + balance + default + housing_loan + personal_loan +   previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial(),weights=weights)
+
+#summary(reduced_model)
+Rsq = 1 - reduced_model$deviance/reduced_model$null.deviance
+Rsq
+anova(model, reduced_model, test = "LRT")
+#jako dobro!!
+```
+
+```{r sa  sa educationa bez duljinom kontakta}
+reduced_model <- glm(term_deposit_accepted ~ age + job + marital_status + education + balance + default + housing_loan + personal_loan +   previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial(),weights=weights)
+
+#summary(reduced_model)
+Rsq = 1 - reduced_model$deviance/reduced_model$null.deviance
+Rsq
+anova(model, reduced_model, test = "LRT")
+#UZASS!!
+```
+
+```{r reducirani nakon 3 tocke}
+reduced_model2 <- glm(term_deposit_accepted ~ age + job  + last_contact_duration+education+ default + housing_loan + personal_loan +   previous_contacts_count + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial(),weights=weights)
+
+
+summary(reduced_model2)
+Rsq = 1 - reduced_model2$deviance/reduced_model2$null.deviance
+Rsq
+```
+
+```{r reducirani sa brojev prijasnjih bez outcome}
+reduced_model <- glm(term_deposit_accepted ~ age + job + marital_status + education + balance + default + housing_loan + personal_loan + last_contact_duration + previous_contacts_count + campaign_contacts_count,data = data, family = binomial(),weights=weights)
+
+Rsq = 1 - reduced_model$deviance/reduced_model$null.deviance
+Rsq
+anova(model, reduced_model, test = "LRT")
+#lose
+```
+
+```{r reducirani sa outcome bez brojeva prijasnjih kontakta}
+reduced_model <- glm(term_deposit_accepted ~ age + job + marital_status + education + balance + default + housing_loan + personal_loan + last_contact_duration + previous_campaign_outcome + campaign_contacts_count,data = data, family = binomial(),weights=weights)
+
+Rsq = 1 - reduced_model$deviance/reduced_model$null.deviance
+Rsq
+anova(model, reduced_model, test = "LRT")
+#odlicno!! micemo count
+```
+
+```{r reducirani nakon 3 tocke i secret :) }
+reduced_model3 <- glm(term_deposit_accepted ~ age + job  + last_contact_duration  + default + housing_loan + personal_loan  + campaign_contacts_count + previous_campaign_outcome,data = data, family = binomial(),weights=weights)
+
+summary(reduced_model3)
+Rsq = 1 - reduced_model3$deviance/reduced_model3$null.deviance
+Rsq
+
+```
+
+```{r}
+anova(model, reduced_model2, test = "LRT")
+anova(model, reduced_model3, test = "LRT")
+anova(reduced_model2, reduced_model3, test = "LRT")
+```
+```{r}
+yHat <- reduced_model2$fitted.values > 0.5
+tab2 <- table(data$term_deposit_accepted,yHat)
+
+tab2
+
+
+accuracy2 = sum(diag(tab2)) / sum(tab2)
+precision2 = tab2[2,2] / sum(tab2[,2])
+recall2 = tab2[2,2] / sum(tab2[2,])
+specificity2 = tab2[1,1] / sum(tab2[,1])
+
+cat("\naccuracy2:")
+accuracy2
+cat("\nprecision2:")
+precision2
+cat("\nrecall2:")
+recall2
+cat("\nspecificity2:")
+specificity2
+
+F12 = 2 * ((precision2*recall2)/(precision2+recall2))
+cat("\nF12:")
+F12
+
+```
+```{r}
+yHat <- reduced_model3$fitted.values > 0.5
+tab3 <- table(data$term_deposit_accepted,yHat)
+
+tab3
+
+
+accuracy3 = sum(diag(tab3)) / sum(tab3)
+precision3 = tab3[2,2] / sum(tab3[,2])
+recall3 = tab3[2,2] / sum(tab3[2,])
+specificity3 = tab3[1,1] / sum(tab3[,1])
+
+cat("\naccuracy3:")
+accuracy3
+cat("\nprecision3:")
+precision3
+cat("\nrecall3:")
+recall3
+cat("\nspecificity3:")
+specificity3
+
+F13 = 2 * ((precision3*recall3)/(precision3+recall3))
+cat("\nF13:")
+F13
+```
+```{r}
+tab
+tab2
+tab3
+```
+
+```{r}
+cat("\naccuracy:")
+accuracy
+cat(" precision:")
+precision
+cat(" recall:")
+recall
+cat(" specificity:")
+specificity
+cat(" F1: ")
+F1
+
+cat("\naccuracy2:")
+accuracy2
+cat(" precision2:")
+precision2
+cat(" recall2:")
+recall2
+cat(" specificity2:")
+specificity2
+cat(" F12: ")
+F12
+
+cat("\naccuracy3:")
+accuracy3
+cat(" precision3:")
+precision3
+cat(" recall3:")
+recall3
+cat(" specificity3:")
+specificity3
+cat(" F13: ")
+F13
+
+```
