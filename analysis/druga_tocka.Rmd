@@ -8,6 +8,10 @@ Imaju li klijenti s otvorenim kreditom više novca na računu od ostalih klijena
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+install.packages("nortest")
+install.packages("car")
+library(car)
+library(nortest)
 library(dplyr)
 ```
 
@@ -93,6 +97,8 @@ Podijelimo klijente na one s otvorenim kreditom i one s neotvorenim kreditom.
 ```{r}
 otvoren = final[final$open_any_loan == 'yes',]
 neotvoren = final[final$open_any_loan == 'no',]
+head(otvoren)
+head(neotvoren)
 
 cat('Prosječno stanje računa klijenata s otvorenim kreditom: ', mean(otvoren$balance))
 cat('\nProsječno stanje računa klijenata bez otvorenog kredita: ', mean(neotvoren$balance))
@@ -120,17 +126,18 @@ hist(neotvoren$balance,
 qqnorm(otvoren$balance, pch = 1, frame = FALSE,main='stanje računa klijenata s otvorenim kreditom')
 qqline(otvoren$balance, col = "steelblue", lwd = 2)
 
-qqnorm(neotvoren$balance, pch = 1, frame = FALSE,main='Spanish players')
+qqnorm(neotvoren$balance, pch = 1, frame = FALSE,main='stanje računa klijenata bez otvorenog kredita')
 qqline(neotvoren$balance, col = "steelblue", lwd = 2)
 
-ks.test(otvoren$balance, "pnorm", mean = mean(otvoren$balance), sd = sd(otvoren$balance))
-ks.test(neotvoren$balance, "pnorm", mean = mean(neotvoren$balance), sd = sd(neotvoren$balance))
+lillie.test(otvoren$balance)
+lillie.test(neotvoren$balance)
 ```
 Zaključujemo da stanje računa nije normalno distribuirano.
-Dalje provjeravamo homogenost varijanci.
+Dalje provjeravamo homogenost varijanci pomoću Lavene testa zbog nenormalnosti podataka.
 
 ```{r}
-var.test(otvoren$balance, neotvoren$balance)
+combined <- rbind(otvoren, neotvoren)
+leveneTest(balance ~ open_any_loan, data = combined)
 ```
 Odbacujemo nultu hipotezu i zaključujemo da varijance nisu jednake.
 
