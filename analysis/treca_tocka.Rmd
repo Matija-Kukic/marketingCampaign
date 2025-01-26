@@ -1,0 +1,120 @@
+---
+title: "treca_tocka"
+author: "Dominik Gračner"
+date: "2025-01-25"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+```
+
+Učitavamo podatke:
+
+```{r}
+data <- read.csv("C:/Faks/SAP/sap/data.csv")
+head(data)
+
+```
+
+Uzimamo stupce koji su nam bitni - trajanje poziva i razina obrazovanja.
+
+```{r}
+stripped = select(data, c("last_contact_duration", "education"))
+head(stripped)
+summary(stripped)
+
+```
+
+Provjerimo vrijednosti kategoričkih podataka i nalazimo li na neodređene vrijednosti.
+```{r}
+'Moguće vrijednosti za stupanj obrazovanja: '
+unique(stripped$education)
+
+for (col_name in names(stripped)){
+  if (sum(is.na(stripped[,col_name])) > 0){
+    cat('Ukupno nedostajućih vrijednosti za varijablu ',col_name, ': ', sum(is.na(stripped[,col_name])),'\n')
+  }
+}
+
+cat('\nDimenzije podataka: ',dim(stripped))
+```
+
+Izbaciti ćemo podatke klijenata kojima ne znamo razinu obrazovanja.
+
+```{r}
+final <- subset(stripped, education != "unknown")
+head(final)
+
+hist(final$last_contact_duration)
+hist(log(final$last_contact_duration))
+```
+
+Kreirajmo grupe podijeljene po stupnju obrazovanja i prikažimo grafički njihove duljine razgovora.
+
+```{r}
+primary = final[final$education == 'primary',]
+secondary = final[final$education == 'secondary',]
+tertiary = final[final$education == 'tertiary',]
+
+cat('Prosječno trajanje razgovora - primary: ', mean(primary$last_contact_duration))
+cat('\nProsječno trajanje razgovora - secondary: ', mean(secondary$last_contact_duration))
+cat('\nProsječno trajanje razgovora - tertiary: ', mean(tertiary$last_contact_duration))
+
+boxplot(primary$last_contact_duration, secondary$last_contact_duration, tertiary$last_contact_duration,  
+        names = c('primary','secondary', 'tertiary'),
+        main='Usporedba razine obrazovanja')
+
+
+```
+
+Provjerimo normalnost i homogenost varijanci, pretpostavljamo nezavisnost grupa.
+
+```{r}
+hist(primary$last_contact_duration, 
+     main='Histogram primary',
+     xlab='Duljina poziva')
+hist(secondary$last_contact_duration, 
+     main='Histogram secondary',
+     xlab='Duljina poziva')
+hist(tertiary$last_contact_duration, 
+     main='Histogram tertiary',
+     xlab='Duljina poziva')
+
+
+qqnorm(primary$last_contact_duration, pch = 1, frame = FALSE,main='primary')
+qqline(primary$last_contact_duration, col = "steelblue", lwd = 2)
+
+qqnorm(secondary$last_contact_duration, pch = 1, frame = FALSE,main='secondary')
+qqline(secondary$last_contact_duration, col = "steelblue", lwd = 2)
+
+qqnorm(tertiary$last_contact_duration, pch = 1, frame = FALSE,main='tertiary')
+qqline(tertiary$last_contact_duration, col = "steelblue", lwd = 2)
+
+ks.test(primary$last_contact_duration, "pnorm", mean = mean(primary$last_contact_duration), sd = sd(primary$last_contact_duration))
+ks.test(secondary$last_contact_duration, "pnorm", mean = mean(secondary$last_contact_duration), sd = sd(secondary$last_contact_duration))
+ks.test(tertiary$last_contact_duration, "pnorm", mean = mean(tertiary$last_contact_duration), sd = sd(tertiary$last_contact_duration))
+
+```
+
+Zaključujemo da stanje računa nije normalno distribuirano.
+Dalje provjeravamo homogenost varijanci.
+
+```{r}
+var.test(primary$last_contact_duration, secondary$last_contact_duration)
+var.test(primary$last_contact_duration, tertiary$last_contact_duration)
+var.test(secondary$last_contact_duration, tertiary$last_contact_duration)
+```
+
+Primjećujemo da razlika nije velika i da se je kod jednog testa p-vrijednost veća od 0.05, ali uzevši u obzir da ostale veze nalažu razliku u varijancama, ne možemo zaključiti ništa s dovoljnom sigurnošću o varijancama.
+
+Očito ne možemo koristiti t-test zbog nepostojanja pretpostavki tako da ćemo koristiti neparametarski Mann-Whitney U test.
+
+```{r}
+wilcox.test(primary$last_contact_duration, secondary$last_contact_duration)
+wilcox.test(primary$last_contact_duration, tertiary$last_contact_duration)
+wilcox.test(secondary$last_contact_duration, tertiary$last_contact_duration)
+```
+
+Samo u vezi primarna-ternarna razina obrazovanja se pojavljuje p-vrijednost dovoljno velika da ne bi odbacili hipotezu. Također kada pogledamo iznose srednjih vrijednosti vidimo da se ne razlikuju zančajno, ako uopće. Zaključujemo da se ovisno o razini obrazovanja ne mijenja duljina trajanja poziva - varijable nisu zavisne.

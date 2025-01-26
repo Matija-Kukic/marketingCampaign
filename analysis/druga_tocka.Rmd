@@ -1,0 +1,142 @@
+---
+title: "Testing"
+author: "Dominik Gračner"
+date: "2025-01-20"
+output: pdf_document
+---
+Imaju li klijenti s otvorenim kreditom više novca na računu od ostalih klijenata?
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+```
+
+Učitavamo podatke:
+
+```{r}
+data <- read.csv("C:/Faks/SAP/sap/data.csv")
+head(data)
+
+```
+
+Uzimamo stupce koji su nam bitni - kredit i stanje računa te dodajmo stupac koji sadrži "yes" ako klijent ima neki od dva kredita, a inače "no".
+```{r}
+stripped = select(data, c("balance", "housing_loan", "personal_loan"))
+stripped$open_any_loan <- ifelse(stripped$housing_loan == "yes" | stripped$personal_loan == "yes", "yes", "no")
+head(stripped)
+summary(stripped)
+
+```
+Provjerimo vrijednosti kategoričkih podataka i nalazimo li na neodređene vrijednosti. Također provjerimo broj negativnih vrijednosti stanja računa zbog potrebe kompresije za log funkciju i grafički prikaz.
+```{r}
+'Moguće vrijednosti za stambeni kredit: '
+unique(stripped$housing_loan)
+'Moguće vrijednosti za nenamjenski kredit: '
+unique(stripped$personal_loan)
+
+for (col_name in names(stripped)){
+  if (sum(is.na(stripped[,col_name])) > 0){
+    cat('Ukupno nedostajućih vrijednosti za varijablu ',col_name, ': ', sum(is.na(fifa19[,col_name])),'\n')
+  }
+}
+count = 0
+for(vrijednost in stripped$balance){
+  if(vrijednost < 0){
+    count = count + 1
+  }
+}
+cat('Broj negativnih stanja računa: ', count)
+cat('\nDimenzije podataka: ',dim(stripped))
+```
+
+Vidimo da nema nedostajućih vrijednosti.
+
+Prikažimo varijable grafički za dublje razumijevanje i provjeru podataka.
+
+```{r}
+barplot(table(stripped$housing_loan), 
+        main = "stambeni kredit", 
+        xlab = "yes/no", 
+        ylab = "Frequency", 
+        col = c("lightblue", "pink"))
+barplot(table(stripped$personal_loan), 
+        main = "nenamjenski kredit", 
+        xlab = "yes/no", 
+        ylab = "Frequency", 
+        col = c("lightblue", "pink"))
+barplot(table(stripped$open_any_loan), 
+        main = "Otvoren bilo koji kredit", 
+        xlab = "yes/no", 
+        ylab = "Frequency", 
+        col = c("lightblue", "pink"))
+hist(stripped$balance - min(stripped$balance)+1,main='stanje računa s negativnim vrijednostima', xlab='eur', ylab='Frequency')
+hist(log(stripped$balance),main='stanje računa bez negativnih vrijednosti', xlab='eur', ylab='Frequency')
+
+
+
+```
+Primjećujemo postojanje nekih outliera, analiziramo njihovu frekvenciju te ih uklanjamo ukoliko je neznačajna.
+```{r}
+stripped$z <- scale(stripped$balance)
+summary(stripped$z)
+cat('\nbroj vrijednosti sa z-vrijednošću većom od 3.29: ',sum(stripped$z > 3))
+cat('\nbroj vrijednosti sa z-vrijednošću manjom od -3.29: ',sum(stripped$z < -3))
+cat('\nukupan broj vrijednosti prvog seta: ', sum(stripped$balance))
+
+final <- data.frame(stripped)
+final <- subset(final, balance >= quantile(balance, 0.01) & balance <= quantile(balance, 0.99))
+
+```
+
+Podijelimo klijente na one s otvorenim kreditom i one s neotvorenim kreditom.
+
+```{r}
+otvoren = final[final$open_any_loan == 'yes',]
+neotvoren = final[final$open_any_loan == 'no',]
+
+cat('Prosječno stanje računa klijenata s otvorenim kreditom: ', mean(otvoren$balance))
+cat('\nProsječno stanje računa klijenata bez otvorenog kredita: ', mean(neotvoren$balance))
+
+boxplot(otvoren$balance, neotvoren$balance, 
+        names = c('stanje računa klijenata s otvorenim kreditom','stanje računa klijenata bez otvorenog kredita'),
+        main='Usporedba stanja računa')
+
+
+```
+
+
+
+
+Provjeravamo pretpostavku normalnosti i nezavisnosti. Nezavisnost pretpostavljamo. Normalnost provjeravamo histogramom, qq-plotom i KS-testom.
+
+```{r}
+hist(otvoren$balance, 
+     main='Histogram stanja računa klijenata s otvorenim kreditom',
+     xlab='Stanje računa u eurima')
+hist(neotvoren$balance, 
+     main='Histogram stanja računa klijenata bez otvorenog kredita',
+     xlab='Stanje računa u eurima')
+
+qqnorm(otvoren$balance, pch = 1, frame = FALSE,main='stanje računa klijenata s otvorenim kreditom')
+qqline(otvoren$balance, col = "steelblue", lwd = 2)
+
+qqnorm(neotvoren$balance, pch = 1, frame = FALSE,main='Spanish players')
+qqline(neotvoren$balance, col = "steelblue", lwd = 2)
+
+ks.test(otvoren$balance, "pnorm", mean = mean(otvoren$balance), sd = sd(otvoren$balance))
+ks.test(neotvoren$balance, "pnorm", mean = mean(neotvoren$balance), sd = sd(neotvoren$balance))
+```
+Zaključujemo da stanje računa nije normalno distribuirano.
+Dalje provjeravamo homogenost varijanci.
+
+```{r}
+var.test(otvoren$balance, neotvoren$balance)
+```
+Odbacujemo nultu hipotezu i zaključujemo da varijance nisu jednake.
+
+Očito ne možemo koristiti t-test zbog nepostojanja pretpostavki tako da ćemo koristiti neparametarski Mann-Whitney U test.
+
+```{r}
+wilcox.test(otvoren$balance, neotvoren$balance)
+```
+Odbacujemo nultu hipotezu i zaključujemo da srednje vrijednosti uistinu nisu jednake. Analiziranjem iznosa srednjih vrijednosti vidimo da klijenti  bez otvorenog kredita imaju veće stanje računa.
