@@ -1,5 +1,5 @@
 ---
-title: "Final"
+title: "Analiza uspješnosti marketinške kampanje"
 author: "Andrija Petrusić, Matija Luka Kukić, Dominik Gračner, Ivan Džanija"
 date: "2025-01-15"
 output: pdf_document
@@ -10,106 +10,244 @@ knitr::opts_chunk$set(echo = TRUE)
 library('dplyr')
 ```
 
-# Analiza uspješnosti marketinške kampanje
-
-```{r Data previewm echo = FALSE}
+```{r echo = FALSE}
 marketingData <- read.csv("data/data.csv")
-head(marketingData)
+# head(marketingData)
 ```
 
 ## Deskriptivna statistika
 
+Generalni pregled podataka i vizualizacija.
+
 ```{r Descriptive statistics, echo=FALSE}
-# Generalni pregled
-summary(marketingData)
+# summary(marketingData)
 ```
 
 ```{r, echo=FALSE}
 deposit_count <- table(marketingData$term_deposit_accepted)
-cat("Binarna varijabla - uplaćen depozit(uspješna kampanja)")
-print(deposit_count)
+cat("Uplaćen depozit(uspješna kampanja) - Binarna varijabla\n")
+cat(deposit_count)
 
 previous_deposit_count <- table(marketingData$previous_campaign_outcome)
-cat("\nUspješnost prethodne kampanje")
-print(previous_deposit_count)
+cat("\nUspješnost prethodne kampanje\n")
+cat(previous_deposit_count)
 
 marital_status_count <- table(marketingData$marital_status)
-cat("\nBračni status")
-print(marital_status_count)
+cat("\nBračni status\n")
+cat(marital_status_count)
 
 education_count <- table(marketingData$education)
-cat("\nRazina edukacije")
-print(education_count)
+cat("\nRazina edukacije\n")
+cat(education_count)
 
 housing_loan_count <- table(marketingData$housing_loan)
-cat("\nIma li stambeni kredit?")
-print(housing_loan_count)
+cat("\nIma li stambeni kredit?\n")
+cat(housing_loan_count)
 
 personal_loan_count <- table(marketingData$personal_loan)
-cat("\nIma li osobni zajam?")
-print(personal_loan_count)
+cat("\nIma li osobni zajam?\n")
+cat(personal_loan_count)
 ```
 
-```{r Graphing}
-barplot(table(data$job), main = "Posao",
+```{r}
+barplot(table(marketingData$job), main = "Posao",
         col = "lightblue",
         ylab = "Frekvencija",
         las = 2,
         cex.names = 0.7)
-
-balance_mean <- mean(data$balance)
-balance_sd <- sd(data$balance)
-h = hist(data$balance,
-  main="Financijsko stanje sudionika", 
-  xlab="Balans",
-  ylab="frekvencija",
-  xlim = c(balance_mean - 3 * balance_sd, balance_mean + 3 * balance_sd),
-  col="red"
-)
 ```
 
-## Provjera zavisnosti zanimanja i bračnog statusa.
+## *Postoji li zavisnost između zanimanja i bračnog statusa klijenta?*
+
+Prvo ćemo provjeriti imamo li nedostajućih vrijednosti i uzeti samo stupce koji su nam bitni za ovo testiranje. Također iz stupca "job" ćemo makuti vrijednosti "unknown" jer ne nose nikakvu informaciju za ovo testiranje.
 
 ```{r}
-# levels(factor(marketing$job))
-# levels(factor(marketing$marital_status))
+rel = marketingData[names(marketingData) %in% c('job','marital_status')]
+rel = rel[rel$job != 'unknown', ]
 status <- c('job', 'marital_status')
 for (colName in status){
-  if (sum(is.na(marketing[,colName])) > 0){
-    cat('Ukupno nedostajućih vrijednosti za varijablu ',colName, ': ', sum(is.na(marketing[,colName])),'\n')
+  if (sum(is.na(marketingData[,colName])) > 0){
+    cat('Ukupno nedostajućih vrijednosti za varijablu ',colName, ': ', sum(is.na(marketingData[,colName])),'\n')
   }
   else {
     cat('Nema nedostajućih vrijednosti za ', colName, '\n')
   }
 }
+
 ```
 
+Za testiranje zavisnosti zanimanja i bračnog statusa razmatramo $\chi^2$ test nezavinosti.
+
+Pretpostavke:
+
+-   kategorički podatci - zadovoljeno
+
+-   očekivane frekvencije svake ćelije tablice mora biti minimalno 5
+
+### Provjera očekivanih vrijednosti
+
+Izrađujemo kontigencijsku tablicu i provjeravamo kolika je očekivana vrijednost za svaku ćeliju.
+
 ```{r}
-rel = marketingData[names(marketingData) %in% c('job','marital_status')]
-rel = rel[rel$job != 'unknown', ]
 tab = addmargins(table(rel$job,rel$marital_status))
 cat("\t\tKontigencijska tablica\n")
 print(tab)
 ```
 
-### Provjera očekivane vrijednosti svake ćelije - mogućnost $\chi^2$ testa
-
 ```{r}
 cat("H0: Kategorijski podatci su nezavisni\n")
 cat("H1: Kategorijski podatci nisu nezavisni\n")
-cat("Alpha value = 0.05")
+cat("Alpha value = 0.05\n")
 chi_squared_result <- chisq.test(tab)
 expected_values <- chi_squared_result$expected
-cat("\t\tSve očekivane vrijednosti su veće od 5.")
-print(expected_values)
-
+for (val in expected_values)
+  if (val < 5){
+    cat("Očekivana vrijednost manja od 5!")
+  }
 print(chi_squared_result)
 ```
 
-Izrazito niska p-vrijednost. Odbacujemo H0 u korist H1, podatci između kategorija su međusobno zavisni.
-Zaključak: statistički značajna zavisnost između zanimanja i bračnost statusa klijenta za razini 5%.
+### Zaključak
+
+Prvo vidimo kako niti jedna očekivana vrijednost nije manja od 5 te zaključujemo da možemo provesti zamišljeni test.
+
+Na temelju testa odbacujemo H0(Kategorijski podatci su nezavisni) u korist H1(Kategorijski podatci nisu nezavisni) te zaključemo da postoji statistički značajna zavisnost između zanimanja i bračnost statusa klijenta na razini značajnosti $\alpha$ = 5%.
+
+## ***Imaju li klijenti s otvorenim kreditom više novca na računu od ostalih klijenata?***
+
+Za provjeru zavisnosti financijskog stanja klijenta i trenutno otvorenog kredita razmatramo T-test za dva uzorka.
+
+Pretpostavke:
+
+-   Numerički podatci - zadovoljeno(razdvajamo na dvije skupine numeričkih podataka)
+
+-   Normalna distribucija podataka
+
+### Provjera normalnosti podataka
+
+Uzimamo stupce koji su nam bitni - kredit i stanje računa te dodajmo stupac koji sadrži "yes" ako klijent ima neki od dva kredita, a inače "no".
 
 ```{r}
-
+stripped = select(marketingData, c("balance", "housing_loan", "personal_loan"))
+stripped$open_any_loan <- ifelse(stripped$housing_loan == "yes" | stripped$personal_loan == "yes", "yes", "no")
+summary(stripped)
 ```
 
+Provjerimo vrijednosti kategoričkih podataka i nalazimo li na nedostajuće vrijednosti.
+
+```{r, echo=FALSE}
+'Moguće vrijednosti za stambeni kredit: '
+unique(stripped$housing_loan)
+'Moguće vrijednosti za osobni zajam: '
+unique(stripped$personal_loan)
+
+for (col_name in names(stripped)){
+  if (sum(is.na(stripped[,col_name])) > 0){
+    cat('Ukupno nedostajućih vrijednosti za varijablu ',col_name, ': ', sum(is.na(fifa19[,col_name])),'\n')
+  }
+}
+count = 0
+for(vrijednost in stripped$balance){
+  if(vrijednost < 0){
+    count = count + 1
+  }
+}
+cat('Broj negativnih stanja računa: ', count)
+cat('\nDimenzije podataka: ',dim(stripped))
+```
+
+Vidimo kako nema nedostajućih vrijednosti.
+
+Vizualiziramo podatke i provodimo moguće testove na normalnost podataka.
+
+```{r}
+hloan <- table(stripped$housing_loan)
+cat("\nIma li stambeni kredit?")
+print(hloan)
+
+ploan <- table(stripped$personal_loan)
+cat("\nIma li osobni zajam?")
+print(ploan)
+
+aloan <- table(stripped$open_any_loan)
+cat("\nIma li osobni zajam?")
+print(aloan)
+hist(stripped$balance - min(stripped$balance)+1,main='Financijsko stanje', xlab='eur', ylab='Frequency')
+balance_mean <- mean(stripped$balance)
+balance_sd <- sd(stripped$balance)
+h = hist(stripped$balance,
+  main="Financijsko stanje - 3sigma pregled", 
+  xlab="Balans",
+  ylab="frekvencija",
+  xlim = c(balance_mean - 3 * balance_sd, balance_mean + 3 * balance_sd),
+  col="red"
+)
+hist(log(stripped$balance),main='Financijsko stanje bez negativnih vrijednosti - log(val)', xlab='eur', ylab='Frequency')
+```
+
+Primjećujemo postojanje velikih outliera, analiziramo njihovu frekvenciju te ih uklanjamo ukoliko nije značajna.
+
+```{r}
+stripped$z <- scale(stripped$balance)
+summary(stripped$z)
+cat('\nbroj vrijednosti sa z-vrijednošću većom od 3.29: ',sum(stripped$z > 3))
+cat('\nbroj vrijednosti sa z-vrijednošću manjom od -3.29: ',sum(stripped$z < -3))
+cat('\nukupan broj vrijednosti prvog seta: ', sum(stripped$balance))
+
+final <- data.frame(stripped)
+final <- subset(final, balance >= quantile(balance, 0.01) & balance <= quantile(balance, 0.99))
+```
+
+Vidimo kako su stršeće vrijednosti stvarno samo manjina podataka te ćemo i maknuti kako bi mogli lakše dalje vizualizirati i provoditi testove bez da pretjerano utječju stršeće vrijednosti. Izbacujemo samo 2% podataka.
+
+```{r}
+otvoren = final[final$open_any_loan == 'yes',]
+neotvoren = final[final$open_any_loan == 'no',]
+
+cat('Prosječno stanje računa klijenata s otvorenim kreditom: ', mean(otvoren$balance))
+cat('\nProsječno stanje računa klijenata bez otvorenog kredita: ', mean(neotvoren$balance))
+
+boxplot(otvoren$balance, neotvoren$balance, 
+        names = c("Financijsko stanje klijenata\ns otvorenim kreditom", 
+                  "Financijsko stanje klijenata\nbez otvorenog kredita"),
+        main='Usporedba stanja računa')
+ 
+```
+
+Sada ćemo vizualizirati histogramom i qq-plotom izgled distribucija te ćemo također provesti Kolmogorov-Smirnov test. Za Kolmogorov-Smirnov moramo testirati specifičnu distribuciju što znači da moramo prosljediti i parametre distribucije prema kojoj hoćemo testirati.
+
+```{r}
+hist(otvoren$balance, 
+     main='Histogram stanja računa klijenata s otvorenim kreditom',
+     xlab='Stanje računa u eurima')
+hist(neotvoren$balance, 
+     main='Histogram stanja računa klijenata bez otvorenog kredita',
+     xlab='Stanje računa u eurima')
+
+qqnorm(otvoren$balance, pch = 1, frame = FALSE,main='Financijsko stanje klijenata s otvorenim kreditom')
+qqline(otvoren$balance, col = "steelblue", lwd = 2)
+
+qqnorm(neotvoren$balance, pch = 1, frame = FALSE,main='Financijsko stanje klijenata bez otvorenog kreditom')
+qqline(neotvoren$balance, col = "steelblue", lwd = 2)
+
+cat("Alpha value = 0.05\n")
+ks.test(otvoren$balance, "pnorm", mean = mean(otvoren$balance), sd = sd(otvoren$balance))
+ks.test(neotvoren$balance, "pnorm", mean = mean(neotvoren$balance), sd = sd(neotvoren$balance))
+```
+
+Zaključak: Odbacujemo H0(normalnost distribucije) u koristi H1(nemamo normalnost distribucije) za oba uzorka. Kao što smo mogli i pretpostaviti financijsko stanje klijenata nije normalno distribuirano. Znači ne možemo koristiti T-test za provjeru.
+
+### Neparametski test
+
+Pošto nemamo pretpostavku normalnosti ne možemo koristiti T-test te provodimo neparametarski test. Test koji provodimo je Mann-Whitney-Wilcoxonov test/Mann–Whitney U test/Wilcoxon rank-sum test
+
+```{r}
+cat("H0: Medijani su jednaki\n")
+cat("H1: Medijani su različiti\n")
+cat("Alpha value = 0.05\n")
+wilcox.test(otvoren$balance, neotvoren$balance, paired = FALSE)
+```
+
+### Zaključak
+
+Nismo mogli provesti T-test jer nismo imali zadovoljenu pretpostavku normalnosti te smo odlučili provesti neparametarski MWW/MWU test za 2 nezavisna uzorka. Na temelju testa odbacujemo H0(medijani su jednaki) u koristi H1(medijani su različiti) na razini značajnosti $\alpha$ = 5%.
