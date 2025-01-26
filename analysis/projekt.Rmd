@@ -126,9 +126,10 @@ qqline(balance_data)
 
 
 ```
+
 Ne možemo prihvatiti nijednu razdiobu poslova i salda kao normalnu.
 
-----------------------------------------------------------------------------------------------
+------------------------------------------------------------------------
 
 ```{r ovisnosti salda o poslu}
 require(nortest)
@@ -178,4 +179,3 @@ pairwise.wilcox.test(data$balance, data$marital_status, p.adjust.method = "bonfe
 ```
 
 Ponovno, zbog ne normalnosti podataka, koristimo Kruskal-Wallis test te odbacujemo ideju da ne postoji razlika između bračnog statusa i godišnjeg salda.
-

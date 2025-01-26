@@ -5,8 +5,9 @@ date: "2025-01-15"
 output: pdf_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, echo=T, error=FALSE, warning=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library('dplyr')
 ```
 
 # Analiza uspješnosti marketinške kampanje
@@ -22,14 +23,31 @@ head(marketingData)
 # Generalni pregled
 summary(marketingData)
 ```
+
 ```{r, echo=FALSE}
 deposit_count <- table(marketingData$term_deposit_accepted)
-print("Binarna varijabla - uplaćen depozit(uspješna kampanja)")
+cat("Binarna varijabla - uplaćen depozit(uspješna kampanja)")
 print(deposit_count)
 
 previous_deposit_count <- table(marketingData$previous_campaign_outcome)
-print("Binarna varijabla - uplaćen depozit(uspješna kampanja)")
-print(deposit_count)
+cat("\nUspješnost prethodne kampanje")
+print(previous_deposit_count)
+
+marital_status_count <- table(marketingData$marital_status)
+cat("\nBračni status")
+print(marital_status_count)
+
+education_count <- table(marketingData$education)
+cat("\nRazina edukacije")
+print(education_count)
+
+housing_loan_count <- table(marketingData$housing_loan)
+cat("\nIma li stambeni kredit?")
+print(housing_loan_count)
+
+personal_loan_count <- table(marketingData$personal_loan)
+cat("\nIma li osobni zajam?")
+print(personal_loan_count)
 ```
 
 ```{r Graphing}
@@ -38,4 +56,60 @@ barplot(table(data$job), main = "Posao",
         ylab = "Frekvencija",
         las = 2,
         cex.names = 0.7)
+
+balance_mean <- mean(data$balance)
+balance_sd <- sd(data$balance)
+h = hist(data$balance,
+  main="Financijsko stanje sudionika", 
+  xlab="Balans",
+  ylab="frekvencija",
+  xlim = c(balance_mean - 3 * balance_sd, balance_mean + 3 * balance_sd),
+  col="red"
+)
 ```
+
+## Provjera zavisnosti zanimanja i bračnog statusa.
+
+```{r}
+# levels(factor(marketing$job))
+# levels(factor(marketing$marital_status))
+status <- c('job', 'marital_status')
+for (colName in status){
+  if (sum(is.na(marketing[,colName])) > 0){
+    cat('Ukupno nedostajućih vrijednosti za varijablu ',colName, ': ', sum(is.na(marketing[,colName])),'\n')
+  }
+  else {
+    cat('Nema nedostajućih vrijednosti za ', colName, '\n')
+  }
+}
+```
+
+```{r}
+rel = marketingData[names(marketingData) %in% c('job','marital_status')]
+rel = rel[rel$job != 'unknown', ]
+tab = addmargins(table(rel$job,rel$marital_status))
+cat("\t\tKontigencijska tablica\n")
+print(tab)
+```
+
+### Provjera očekivane vrijednosti svake ćelije - mogućnost $\chi^2$ testa
+
+```{r}
+cat("H0: Kategorijski podatci su nezavisni\n")
+cat("H1: Kategorijski podatci nisu nezavisni\n")
+cat("Alpha value = 0.05")
+chi_squared_result <- chisq.test(tab)
+expected_values <- chi_squared_result$expected
+cat("\t\tSve očekivane vrijednosti su veće od 5.")
+print(expected_values)
+
+print(chi_squared_result)
+```
+
+Izrazito niska p-vrijednost. Odbacujemo H0 u korist H1, podatci između kategorija su međusobno zavisni.
+Zaključak: statistički značajna zavisnost između zanimanja i bračnost statusa klijenta za razini 5%.
+
+```{r}
+
+```
+
