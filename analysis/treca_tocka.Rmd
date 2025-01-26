@@ -114,7 +114,6 @@ fligner.test(list(primary$last_contact_duration, secondary$last_contact_duration
 
 Varijance su homogene
 
-
 ```{r}
 data <- data.frame(
   value = c(primary$last_contact_duration, secondary$last_contact_duration, tertiary$last_contact_duration),  # The actual values

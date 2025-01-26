@@ -9,8 +9,6 @@ Imaju li klijenti s otvorenim kreditom više novca na računu od ostalih klijena
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-install.packages("nortest")
-install.packages("car")
 library(car)
 library(nortest)
 library(dplyr)
@@ -44,7 +42,7 @@ unique(stripped$personal_loan)
 
 for (col_name in names(stripped)){
   if (sum(is.na(stripped[,col_name])) > 0){
-    cat('Ukupno nedostajućih vrijednosti za varijablu ',col_name, ': ', sum(is.na(fifa19[,col_name])),'\n')
+    cat('Ukupno nedostajućih vrijednosti za varijablu ',col_name, ': ', sum(is.na(stripped[,col_name])),'\n')
   }
 }
 count = 0
@@ -135,8 +133,9 @@ qqline(neotvoren$balance, col = "steelblue", lwd = 2)
 lillie.test(otvoren$balance)
 lillie.test(neotvoren$balance)
 ```
-Zaključujemo da stanje računa nije normalno distribuirano.
-Dalje provjeravamo homogenost varijanci pomoću Lavene testa zbog nenormalnosti podataka.
+
+Zaključujemo da stanje računa nije normalno distribuirano. Dalje provjeravamo homogenost varijanci pomoću Lavene testa zbog nenormalnosti podataka.
+
 ```{r}
 combined <- rbind(otvoren, neotvoren)
 leveneTest(balance ~ open_any_loan, data = combined)
