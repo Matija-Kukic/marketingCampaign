@@ -27,27 +27,27 @@ Generalni pregled podataka i vizualizacija.
 ```{r, warning= FALSE , fig.show='hold'}
 deposit_count <- table(marketingData$term_deposit_accepted)
 cat("Uplaćen depozit(uspješna kampanja) - Binarna varijabla\n")
-cat(deposit_count)
+print(deposit_count)
 
 previous_deposit_count <- table(marketingData$previous_campaign_outcome)
 cat("\nUspješnost prethodne kampanje\n")
-cat(previous_deposit_count)
+print(previous_deposit_count)
 
 marital_status_count <- table(marketingData$marital_status)
 cat("\nBračni status\n")
-cat(marital_status_count)
+print(marital_status_count)
 
 education_count <- table(marketingData$education)
 cat("\nRazina edukacije\n")
-cat(education_count)
+print(education_count)
 
 housing_loan_count <- table(marketingData$housing_loan)
 cat("\nIma li stambeni kredit?\n")
-cat(housing_loan_count)
+print(housing_loan_count)
 
 personal_loan_count <- table(marketingData$personal_loan)
 cat("\nIma li osobni zajam?\n")
-cat(personal_loan_count)
+print(personal_loan_count)
 ```
 
 ```{r, warning=FALSE, fig.show='hold'}
