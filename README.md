@@ -1,4 +1,4 @@
-# Programming-Language-Translation
+# Statistical-Data-Analysis
 ## About - Project @Uni-ZG FER for SDA(SAP) class  
 R implementation of specific statistical tests for specific marketing campaign data set with defined research questions.<br> 
 ### Research questions: 
